@@ -1,0 +1,102 @@
+[
+  {
+    "product_id": 1,
+    "name": "Air Max Running Shoes",
+    "search_text": "Air Max Running Shoes | Nike | Running Shoes | Road Running | Lightweight running shoes designed for everyday training | running, fitness, lightweight, training | cushioned sole, breathable mesh, lightweight design | runners, fitness enthusiasts | daily running, long-distance training, gym | Black | Mesh",
+    "category": "Running Shoes",
+    "subcategory": "Road Running",
+    "brand": "Nike",
+    "price": 89.99,
+    "rating": 4.5
+  },
+  {
+    "product_id": 3,
+    "name": "Ultraboost Performance Shoes",
+    "search_text": "Ultraboost Performance Shoes | Adidas | Running Shoes | Performance Running | Cushioned performance running shoes designed for runners who want comfort and responsive support. | running, performance, cushioning, training | responsive cushioning, supportive upper, energy return | runners, athletes, fitness enthusiasts | daily running, marathon training, road running | White | Primeknit",
+    "category": "Running Shoes",
+    "subcategory": "Performance Running",
+    "brand": "Adidas",
+    "price": 129.99,
+    "rating": 4.7
+  },
+  {
+    "product_id": 4,
+    "name": "MacBook Air M3",
+    "search_text": "MacBook Air M3 | Apple | Laptops | Ultrabook | Thin and lightweight laptop with Apple silicon, long battery life, and a high-resolution display. | laptop, productivity, portable, programming | Apple silicon, long battery life, lightweight design | students, developers, professionals | programming, studying, office work, travel | Silver | Aluminum",
+    "category": "Laptops",
+    "subcategory": "Ultrabook",
+    "brand": "Apple",
+    "price": 999.99,
+    "rating": 4.8
+  },
+  {
+    "product_id": 5,
+    "name": "Galaxy Book4",
+    "search_text": "Galaxy Book4 | Samsung | Laptops | Productivity Laptop | Portable Windows laptop designed for productivity, multitasking, and everyday computing. | laptop, windows, productivity, portable | portable design, high-resolution display, multitasking | students, professionals, business users | office work, studying, browsing, productivity | Graphite | Aluminum",
+    "category": "Laptops",
+    "subcategory": "Productivity Laptop",
+    "brand": "Samsung",
+    "price": 849.99,
+    "rating": 4.4
+  },
+  {
+    "product_id": 6,
+    "name": "WH-1000XM5",
+    "search_text": "WH-1000XM5 | Sony | Headphones | Noise-Canceling Headphones | Wireless over-ear headphones with active noise cancellation and long battery life. | headphones, wireless, noise cancellation, travel | active noise cancellation, wireless connectivity, long battery life | travelers, professionals, music listeners | travel, commuting, office work, music | Black | Synthetic leather",
+    "category": "Headphones",
+    "subcategory": "Noise-Canceling Headphones",
+    "brand": "Sony",
+    "price": 349.99,
+    "rating": 4.8
+  },
+  {
+    "product_id": 7,
+    "name": "QuietComfort Headphones",
+    "search_text": "QuietComfort Headphones | Bose | Headphones | Noise-Canceling Headphones | Comfortable wireless headphones with strong noise cancellation for travel and work. | headphones, wireless, comfort, noise cancellation | active noise cancellation, comfortable ear cushions, wireless audio | travelers, commuters, music listeners | travel, commuting, office work, music | Black | Synthetic leather",
+    "category": "Headphones",
+    "subcategory": "Noise-Canceling Headphones",
+    "brand": "Bose",
+    "price": 299.99,
+    "rating": 4.6
+  },
+  {
+    "product_id": 8,
+    "name": "iPhone 16",
+    "search_text": "iPhone 16 | Apple | Smartphones | Flagship Smartphone | Premium smartphone with advanced camera features, powerful performance, and all-day battery life. | smartphone, apple, camera, mobile | advanced camera system, powerful processor, all-day battery | professionals, students, mobile users | photography, communication, entertainment, mobile work | Blue | Aluminum and glass",
+    "category": "Smartphones",
+    "subcategory": "Flagship Smartphone",
+    "brand": "Apple",
+    "price": 799.99,
+    "rating": 4.7
+  },
+  {
+    "product_id": 9,
+    "name": "Galaxy S25",
+    "search_text": "Galaxy S25 | Samsung | Smartphones | Flagship Smartphone | Android smartphone with a high-quality display, advanced cameras, and flagship performance. | smartphone, android, camera, performance | high-resolution display, advanced cameras, flagship processor | professionals, students, mobile users | photography, gaming, communication, entertainment | Navy | Aluminum and glass",
+    "category": "Smartphones",
+    "subcategory": "Flagship Smartphone",
+    "brand": "Samsung",
+    "price": 799.99,
+    "rating": 4.6
+  },
+  {
+    "product_id": 10,
+    "name": "Everyday Travel Backpack",
+    "search_text": "Everyday Travel Backpack | North Face | Backpacks | Laptop Backpack | Durable backpack with padded laptop storage and multiple compartments for commuting and travel. | backpack, travel, laptop, commuting | padded laptop compartment, multiple pockets, durable construction | students, commuters, travelers | commuting, travel, school, office | Black | Polyester",
+    "category": "Backpacks",
+    "subcategory": "Laptop Backpack",
+    "brand": "North Face",
+    "price": 79.99,
+    "rating": 4.5
+  },
+  {
+    "product_id": 11,
+    "name": "Premium Coffee Maker",
+    "search_text": "Premium Coffee Maker | Breville | Coffee Makers | Drip Coffee Maker | Programmable coffee maker designed for convenient brewing and consistent flavor at home. | coffee, kitchen, brewing, home | programmable brewing, consistent temperature, easy controls | coffee enthusiasts, home users, professionals | home brewing, office coffee, morning routine | Stainless Steel | Stainless Steel",
+    "category": "Coffee Makers",
+    "subcategory": "Drip Coffee Maker",
+    "brand": "Breville",
+    "price": 149.99,
+    "rating": 4.6
+  }
+]

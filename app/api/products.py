@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
 
 from app.db.session import get_db
@@ -33,9 +33,35 @@ def create_product_endpoint(
     response_model=list[ProductResponse],
 )
 def get_products_endpoint(
+    category: str | None = Query(default=None),
+    brand: str | None = Query(default=None),
+    min_price: float | None = Query(default=None, ge=0),
+    max_price: float | None = Query(default=None, ge=0),
+    min_rating: float | None = Query(default=None, ge=0, le=5),
+    skip: int = Query(default=0, ge=0),
+    limit: int = Query(default=50, ge=1, le=100),
+    sort_by: str = Query(
+        default="id",
+        pattern="^(id|name|price|rating)$",
+    ),
+    sort_order: str = Query(
+        default="asc",
+        pattern="^(asc|desc)$",
+    ),
     db: Session = Depends(get_db),
 ):
-    return get_products(db)
+    return get_products(
+        db,
+        category=category,
+        brand=brand,
+        min_price=min_price,
+        max_price=max_price,
+        min_rating=min_rating,
+        skip=skip,
+        limit=limit,
+        sort_by=sort_by,
+        sort_order=sort_order,
+    )
 
 
 @router.get(
