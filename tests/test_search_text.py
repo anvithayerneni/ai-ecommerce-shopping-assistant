@@ -33,3 +33,30 @@ def test_build_search_text_contains_product_information():
     assert "programming, studying" in search_text
     assert "Silver" in search_text
     assert "Aluminum" in search_text
+
+def test_semantic_product_search(client):
+    response = client.get(
+        "/products/search?q=running%20shoes%20for%20training&top_k=3"
+    )
+
+    assert response.status_code == 200
+
+    results = response.json()
+
+    assert len(results) == 3
+    assert results[0]["product_id"] in {1, 3}
+    assert "score" in results[0]
+
+
+def test_semantic_product_search_validation(client):
+    response = client.get(
+        "/products/search?q=a&top_k=3"
+    )
+
+    assert response.status_code == 422
+
+    response = client.get(
+        "/products/search?q=running%20shoes&top_k=0"
+    )
+
+    assert response.status_code == 422
