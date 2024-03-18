@@ -8,6 +8,12 @@ class Product(Base):
     __tablename__ = "products"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    external_id: Mapped[str | None] = mapped_column(
+    String(100),
+    nullable=True,
+    unique=True,
+    index=True,
+)
     name: Mapped[str] = mapped_column(String(255), nullable=False)
     description: Mapped[str | None] = mapped_column(Text, nullable=True)
     brand: Mapped[str | None] = mapped_column(String(100), nullable=True)
