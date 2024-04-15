@@ -48,5 +48,6 @@ jobs:
           AZURE_SEARCH_ENDPOINT: https://test-search.example.com
           AZURE_SEARCH_API_KEY: test-api-key
           AZURE_SEARCH_INDEX_NAME: test-index
+          OPENAI_API_KEY: test-api-key
         run: |
           pytest -q
