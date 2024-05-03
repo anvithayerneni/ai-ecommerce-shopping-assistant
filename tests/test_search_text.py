@@ -34,7 +34,45 @@ def test_build_search_text_contains_product_information():
     assert "Silver" in search_text
     assert "Aluminum" in search_text
 
-def test_semantic_product_search(client):
+
+def test_semantic_product_search(client, monkeypatch):
+    from app.services import search_service
+
+    mock_results = [
+        {
+            "id": "1",
+            "name": "Running Shoe A",
+            "brand": "TestBrand",
+            "category": "Running Shoes",
+            "price": 79.99,
+            "rating": 4.5,
+            "rerank_score": 0.9,
+            "match_reasons": [
+                "Matches Running Shoes category",
+                "Supports training",
+            ],
+        },
+        {
+            "id": "3",
+            "name": "Running Shoe B",
+            "brand": "TestBrand",
+            "category": "Running Shoes",
+            "price": 89.99,
+            "rating": 4.4,
+            "rerank_score": 0.8,
+            "match_reasons": [
+                "Matches Running Shoes category",
+                "Supports training",
+            ],
+        },
+    ]
+
+    monkeypatch.setattr(
+        search_service,
+        "search_products",
+        lambda query, top_k: mock_results,
+    )
+
     response = client.get(
         "/products/search?q=running%20shoes%20for%20training&top_k=3"
     )
@@ -64,6 +102,7 @@ def test_semantic_product_search_validation(client):
     )
 
     assert response.status_code == 422
+
 
 def test_semantic_search_price_range_filter(monkeypatch):
     from app.services import search_service
