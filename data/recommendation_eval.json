@@ -1,0 +1,163 @@
+{
+  "evaluation_cases": [
+    {
+      "query_product_id": 1,
+      "relevant_product_ids": [3]
+    },
+    {
+      "query_product_id": 3,
+      "relevant_product_ids": [1]
+    },
+
+    {
+      "query_product_id": 4,
+      "relevant_product_ids": [5, 107]
+    },
+    {
+      "query_product_id": 5,
+      "relevant_product_ids": [4, 107]
+    },
+    {
+      "query_product_id": 107,
+      "relevant_product_ids": [4, 5]
+    },
+
+    {
+      "query_product_id": 6,
+      "relevant_product_ids": [7]
+    },
+    {
+      "query_product_id": 7,
+      "relevant_product_ids": [6]
+    },
+
+    {
+      "query_product_id": 8,
+      "relevant_product_ids": [9]
+    },
+    {
+      "query_product_id": 9,
+      "relevant_product_ids": [8]
+    },
+
+    {
+      "query_product_id": 62,
+      "relevant_product_ids": [63, 602, 616]
+    },
+    {
+      "query_product_id": 63,
+      "relevant_product_ids": [62, 602, 616]
+    },
+    {
+      "query_product_id": 85,
+      "relevant_product_ids": [227]
+    },
+    {
+      "query_product_id": 227,
+      "relevant_product_ids": [85]
+    },
+
+    {
+      "query_product_id": 24,
+      "relevant_product_ids": [100, 101]
+    },
+    {
+      "query_product_id": 100,
+      "relevant_product_ids": [24, 101]
+    },
+    {
+      "query_product_id": 101,
+      "relevant_product_ids": [24, 100]
+    },
+
+    {
+      "query_product_id": 150,
+      "relevant_product_ids": [151]
+    },
+    {
+      "query_product_id": 151,
+      "relevant_product_ids": [150]
+    },
+
+    {
+      "query_product_id": 105,
+      "relevant_product_ids": [139]
+    },
+    {
+      "query_product_id": 139,
+      "relevant_product_ids": [105]
+    },
+
+    {
+      "query_product_id": 117,
+      "relevant_product_ids": [118, 119, 138, 143]
+    },
+    {
+      "query_product_id": 118,
+      "relevant_product_ids": [117, 119, 138, 143]
+    },
+    {
+      "query_product_id": 119,
+      "relevant_product_ids": [117, 118, 138, 143]
+    },
+
+    {
+      "query_product_id": 389,
+      "relevant_product_ids": [400, 401]
+    },
+    {
+      "query_product_id": 400,
+      "relevant_product_ids": [389, 401]
+    },
+
+    {
+      "query_product_id": 26,
+      "relevant_product_ids": [511, 777]
+    },
+
+    {
+      "query_product_id": 516,
+      "relevant_product_ids": [532, 533, 535, 537, 538]
+    },
+    {
+      "query_product_id": 532,
+      "relevant_product_ids": [516, 533, 535, 537, 538]
+    },
+
+    {
+      "query_product_id": 530,
+      "relevant_product_ids": [531]
+    },
+    {
+      "query_product_id": 531,
+      "relevant_product_ids": [530]
+    },
+
+    {
+      "query_product_id": 391,
+      "relevant_product_ids": [392, 399]
+    },
+    {
+      "query_product_id": 392,
+      "relevant_product_ids": [391, 399]
+    },
+
+    {
+      "query_product_id": 363,
+      "relevant_product_ids": [364, 365, 366]
+    },
+    {
+      "query_product_id": 364,
+      "relevant_product_ids": [363, 365, 366]
+    },
+
+    {
+      "query_product_id": 167,
+      "relevant_product_ids": [169, 171, 176, 178, 179]
+    },
+    {
+      "query_product_id": 169,
+      "relevant_product_ids": [167, 171, 176, 178, 179]
+    }
+  ]
+}

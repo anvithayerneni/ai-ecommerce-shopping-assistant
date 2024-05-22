@@ -167,9 +167,27 @@ def detect_min_price(query: str) -> float | None:
     ]
 
     for pattern in patterns:
-        match = re.search(pattern, normalized_query)
+        matches = re.finditer(
+            pattern,
+            normalized_query,
+        )
 
-        if match:
+        for match in matches:
+            start = match.start()
+
+            # Ignore "at least X" when it is part of
+            # a rating requirement such as:
+            # "rated at least 4.7"
+            prefix = normalized_query[
+                max(0, start - 12):start
+            ]
+
+            if (
+                "rating" in prefix
+                or "rated" in prefix
+            ):
+                continue
+
             return float(
                 match.group(1).replace(",", "")
             )

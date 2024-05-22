@@ -28,13 +28,14 @@ Match Reasons: {recommendation.get("match_reasons", [])}
 
     return "\n\n".join(context_lines)
 
+
 def _build_llm_prompt(
     query: str,
     recommendations: list[dict],
 ) -> str:
     rag_context = _build_rag_context(
-    recommendations,
-)
+        recommendations,
+    )
 
     return f"""
 You are a shopping assistant.
@@ -85,6 +86,14 @@ def get_recommendations(
     query: str,
     top_k: int = 5,
 ) -> dict:
+    """
+    Legacy/service-level recommendation entry point.
+
+    Kept compatible with the existing unit tests.
+    The FastAPI assistant endpoint is now orchestrated
+    through LangGraph.
+    """
+
     results = search_products(
         query=query,
         top_k=top_k,
@@ -98,16 +107,22 @@ def get_recommendations(
                 "product": {
                     "id": result["id"],
                     "name": result["name"],
-                    "brand": result["brand"],
-                    "category": result["category"],
+                    "brand": result.get("brand"),
+                    "category": result.get("category"),
                     "price": result["price"],
-                    "rating": result["rating"],
+                    "rating": result.get("rating"),
                     "tags": result.get("tags"),
                     "features": result.get("features"),
-                    "target_audience": result.get("target_audience"),
-                    "use_cases": result.get("use_cases"),
+                    "target_audience": result.get(
+                        "target_audience"
+                    ),
+                    "use_cases": result.get(
+                        "use_cases"
+                    ),
                 },
-                "score": result.get("rerank_score"),
+                "score": result.get(
+                    "rerank_score"
+                ),
                 "match_reasons": result.get(
                     "match_reasons",
                     [],
