@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>AI Shopping Assistant</title>
+
+    <link
+        rel="stylesheet"
+        href="style.css"
+    >
+</head>
+
+<body>
+
+    <header class="navbar">
+        <div class="brand">
+            <div class="brand-icon">🛍️</div>
+
+            <div>
+                <h1>AI Shopping Assistant</h1>
+                <p>Intelligent product discovery</p>
+            </div>
+        </div>
+
+        <div class="status">
+            <span class="status-dot"></span>
+            AI Online
+        </div>
+    </header>
+
+
+    <main class="container">
+
+        <!-- HERO -->
+
+        <section class="hero">
+
+            <div class="hero-content">
+
+                <span class="eyebrow">
+                    AI-POWERED E-COMMERCE
+                </span>
+
+                <h2>
+                    Find the right product,
+                    <span>faster.</span>
+                </h2>
+
+                <p>
+                    Search products using natural language and
+                    get intelligent recommendations based on
+                    category, use case, and semantic similarity.
+                </p>
+
+            </div>
+
+
+            <!-- SEARCH -->
+
+            <div class="search-card">
+
+                <label for="searchInput">
+                    What are you looking for?
+                </label>
+
+                <div class="search-row">
+
+                    <input
+                        id="searchInput"
+                        type="text"
+                        placeholder="e.g. laptop under $1000 for programming"
+                    >
+
+                    <button
+                        id="searchButton"
+                        type="button"
+                    >
+                        <span>Search</span>
+                        <span>→</span>
+                    </button>
+
+                </div>
+
+
+                <div class="suggestions">
+
+                    <button
+                        class="suggestion"
+                        data-query="laptop under $1000 for programming"
+                    >
+                        💻 Laptop under $1000
+                    </button>
+
+                    <button
+                        class="suggestion"
+                        data-query="noise cancelling headphones for travel"
+                    >
+                        🎧 Headphones for travel
+                    </button>
+
+                    <button
+                        class="suggestion"
+                        data-query="running shoes for daily training"
+                    >
+                        👟 Running shoes
+                    </button>
+
+                </div>
+
+            </div>
+
+        </section>
+
+
+        <!-- LOADING -->
+
+        <section
+            id="loading"
+            class="loading hidden"
+        >
+            <div class="spinner"></div>
+
+            <p>
+                Finding the best products for you...
+            </p>
+        </section>
+
+
+        <!-- ERROR -->
+
+        <section
+            id="error"
+            class="error hidden"
+        >
+            <strong>Something went wrong.</strong>
+
+            <p id="errorMessage"></p>
+        </section>
+
+
+        <!-- RESULTS -->
+
+        <section
+            id="results"
+            class="results hidden"
+        >
+
+            <div class="section-heading">
+
+                <div>
+                    <span class="eyebrow">
+                        RECOMMENDATIONS
+                    </span>
+
+                    <h3 id="resultsTitle">
+                        Products for you
+                    </h3>
+                </div>
+
+                <span
+                    id="resultCount"
+                    class="result-count"
+                ></span>
+
+            </div>
+
+
+            <!-- AI RESPONSE -->
+
+            <div class="ai-response">
+
+                <div class="ai-icon">
+                    ✨
+                </div>
+
+                <div>
+                    <strong>
+                        AI Recommendation
+                    </strong>
+
+                    <p id="aiMessage">
+                        Here are the products that best match
+                        your request.
+                    </p>
+                </div>
+
+            </div>
+
+
+            <!-- PRODUCT GRID -->
+
+            <div
+                id="productGrid"
+                class="product-grid"
+            ></div>
+
+        </section>
+
+
+        <!-- HOW IT WORKS -->
+
+        <section class="how-it-works">
+
+            <div class="section-heading">
+
+                <div>
+                    <span class="eyebrow">
+                        UNDER THE HOOD
+                    </span>
+
+                    <h3>
+                        How the recommendation engine works
+                    </h3>
+                </div>
+
+            </div>
+
+
+            <div class="architecture">
+
+                <div class="architecture-card">
+
+                    <div class="architecture-number">
+                        01
+                    </div>
+
+                    <h4>
+                        Understand
+                    </h4>
+
+                    <p>
+                        Natural-language queries are analyzed
+                        to understand category, budget and
+                        shopping intent.
+                    </p>
+
+                </div>
+
+
+                <div class="architecture-arrow">
+                    →
+                </div>
+
+
+                <div class="architecture-card">
+
+                    <div class="architecture-number">
+                        02
+                    </div>
+
+                    <h4>
+                        Retrieve
+                    </h4>
+
+                    <p>
+                        Relevant products are retrieved from
+                        the product catalog using semantic
+                        search and structured signals.
+                    </p>
+
+                </div>
+
+
+                <div class="architecture-arrow">
+                    →
+                </div>
+
+
+                <div class="architecture-card">
+
+                    <div class="architecture-number">
+                        03
+                    </div>
+
+                    <h4>
+                        Rank
+                    </h4>
+
+                    <p>
+                        Products are ranked using a hybrid
+                        recommendation strategy combining
+                        categorical, use-case and semantic
+                        similarity.
+                    </p>
+
+                </div>
+
+            </div>
+
+
+            <div class="metrics">
+
+                <div>
+                    <strong>40%</strong>
+                    <span>Category</span>
+                </div>
+
+                <div>
+                    <strong>20%</strong>
+                    <span>Use Case</span>
+                </div>
+
+                <div>
+                    <strong>40%</strong>
+                    <span>Semantic</span>
+                </div>
+
+                <div>
+                    <strong>100%</strong>
+                    <span>Hit Rate@5</span>
+                </div>
+
+            </div>
+
+        </section>
+
+    </main>
+
+
+    <footer>
+
+        <p>
+            AI-Powered E-Commerce Shopping & Recommendation Assistant
+        </p>
+
+        <p>
+            Python · FastAPI · PyTorch · Azure AI · LangGraph
+        </p>
+
+    </footer>
+
+
+    <script src="app.js"></script>
+
+</body>
+</html>

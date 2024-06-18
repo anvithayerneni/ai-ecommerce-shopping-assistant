@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Query
 
 from app.schemas.assistant import RecommendationResponse
-from app.services.shopping_assistant import get_recommendations
+from app.agents.shopping_graph import shopping_graph
 
 
 router = APIRouter(
@@ -22,7 +22,38 @@ def recommend_products(
         le=20,
     ),
 ):
-    return get_recommendations(
-        query=q,
-        top_k=top_k,
+    """
+    Run the LangGraph-powered shopping assistant.
+    """
+
+    initial_state = {
+        "query": q.strip(),
+        "top_k": top_k,
+        "conversation_history": [],
+        "previous_recommendations": [],
+    }
+
+    # LangGraph checkpointer requires a thread_id.
+    config = {
+        "configurable": {
+            "thread_id": "shopping-assistant-demo"
+        }
+    }
+
+    result = shopping_graph.invoke(
+        initial_state,
+        config=config,
     )
+
+    recommendations = result.get(
+        "recommendations",
+        [],
+    )
+
+    return {
+        "query": q,
+        "assistant_response": result.get(
+            "response"
+        ),
+        "recommendations": recommendations,
+    }

@@ -172,11 +172,18 @@ def resolve_followup_node(
     # Previous category
     # --------------------------------------------------------
 
-    categories = [
-        product.get("category")
-        for product in previous_recommendations
-        if product.get("category")
-    ]
+    categories = []
+
+    for recommendation in previous_recommendations:
+        product = recommendation.get(
+            "product",
+            recommendation,
+        )
+
+        category = product.get("category")
+
+        if category:
+            categories.append(category)
 
     previous_category = (
         categories[0]
@@ -196,7 +203,12 @@ def resolve_followup_node(
 
     use_cases = []
 
-    for product in previous_recommendations:
+    for recommendation in previous_recommendations:
+        product = recommendation.get(
+            "product",
+            recommendation,
+        )
+
         product_use_cases = product.get(
             "use_cases"
         )
@@ -223,17 +235,27 @@ def resolve_followup_node(
     # --------------------------------------------------------
     # CHEAPER
     # --------------------------------------------------------
-
+    
     if (
         "cheaper" in normalized
         or "lower price" in normalized
         or "less expensive" in normalized
     ):
-        prices = [
-            product.get("price")
-            for product in previous_recommendations
-            if product.get("price") is not None
-        ]
+        prices = []
+
+        for recommendation in previous_recommendations:
+            product = recommendation.get(
+                "product",
+                recommendation,
+            )
+
+            price = product.get("price")
+
+            if price is not None:
+                prices.append(price)
+
+
+
 
         if prices:
             max_previous_price = max(prices)
@@ -430,6 +452,20 @@ def filter_products_node(
             "use_case"
         ),
     )
+        # Strictly cheaper follow-up:
+    # exclude products priced at or above the previous price.
+    if state.get("followup_type") == "cheaper":
+        followup_max_price = state.get(
+            "followup_max_price"
+        )
+
+        if followup_max_price is not None:
+            filtered_results = [
+                product
+                for product in filtered_results
+                if product.get("price") is not None
+                and float(product["price"]) < followup_max_price
+            ]
 
     return {
         **state,
@@ -446,7 +482,8 @@ def recommendation_node(
 ) -> ShoppingState:
     """
     Select the highest-ranked products after deterministic
-    filtering.
+    filtering and normalize them into the API recommendation
+    structure.
     """
 
     results = state.get(
@@ -454,7 +491,7 @@ def recommendation_node(
         [],
     )
 
-    recommendations = sorted(
+    ranked_results = sorted(
         results,
         key=lambda product: product.get(
             "rerank_score",
@@ -462,6 +499,38 @@ def recommendation_node(
         ),
         reverse=True,
     )[:5]
+
+    recommendations = []
+
+    for result in ranked_results:
+        recommendations.append(
+            {
+                "product": {
+                    "id": result.get("id"),
+                    "name": result.get("name"),
+                    "brand": result.get("brand"),
+                    "category": result.get("category"),
+                    "price": result.get("price"),
+                    "rating": result.get("rating"),
+                    "tags": result.get("tags"),
+                    "features": result.get("features"),
+                    "target_audience": result.get(
+                        "target_audience"
+                    ),
+                    "use_cases": result.get(
+                        "use_cases"
+                    ),
+                },
+                "score": result.get(
+                    "rerank_score",
+                    0.0,
+                ),
+                "match_reasons": result.get(
+                    "match_reasons",
+                    [],
+                ),
+            }
+        )
 
     return {
         **state,
@@ -496,7 +565,11 @@ def grounding_validation_node(
     context_lines = []
 
     for recommendation in recommendations:
-        product_name = recommendation.get(
+        product = recommendation.get(
+            "product",
+            {},
+        )
+        product_name = product.get(
             "name"
         )
 
@@ -507,17 +580,17 @@ def grounding_validation_node(
             f"""
 Product:
 Name: {product_name}
-Brand: {recommendation.get("brand") or "Unknown"}
-Category: {recommendation.get("category") or "Unknown"}
-Price: ${recommendation.get("price")}
-Rating: {recommendation.get("rating") or "N/A"}
-Tags: {recommendation.get("tags") or "N/A"}
-Features: {recommendation.get("features") or "N/A"}
+Brand: {product.get("brand") or "Unknown"}
+Category: {product.get("category") or "Unknown"}
+Price: ${product.get("price")}
+Rating: {product.get("rating") or "N/A"}
+Tags: {product.get("tags") or "N/A"}
+Features: {product.get("features") or "N/A"}
 Target Audience: {
-    recommendation.get("target_audience") or "N/A"
+    product.get("target_audience") or "N/A"
 }
 Use Cases: {
-    recommendation.get("use_cases") or "N/A"
+    product.get("use_cases") or "N/A"
 }
 Match Reasons: {
     recommendation.get("match_reasons") or []
