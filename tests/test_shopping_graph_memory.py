@@ -16,95 +16,88 @@ def fake_search_products(
     top_k: int = 5,
 ):
     """
-    Return deterministic catalog data so the memory test
-    does not require Azure AI Search.
+    Deterministic product data for the memory test.
+
+    This prevents the test from calling Azure AI Search.
     """
 
-    if "under $1000" in query.lower():
-        return [
-            {
-                "id": "4",
-                "name": "MacBook Air M3",
-                "brand": "Apple",
-                "category": "Laptops",
-                "price": 999.99,
-                "rating": 4.8,
-                "tags": (
-                    "laptop, productivity, portable, programming"
-                ),
-                "features": (
-                    "Apple silicon, long battery life, "
-                    "lightweight design"
-                ),
-                "target_audience": (
-                    "students, developers, professionals"
-                ),
-                "use_cases": (
-                    "programming, studying, office work, travel"
-                ),
-                "rerank_score": 0.32,
-                "match_reasons": [
-                    "Matches Laptops category",
-                    "Supports programming",
-                    "Within $1,000 budget",
-                ],
-            },
-            {
-                "id": "5",
-                "name": "Galaxy Book4",
-                "brand": "Samsung",
-                "category": "Laptops",
-                "price": 849.99,
-                "rating": 4.4,
-                "tags": (
-                    "laptop, windows, productivity, portable"
-                ),
-                "features": (
-                    "portable design, high-resolution display, "
-                    "multitasking"
-                ),
-                "target_audience": (
-                    "students, professionals, business users"
-                ),
-                "use_cases": (
-                    "office work, studying, browsing, productivity"
-                ),
-                "rerank_score": 0.17,
-                "match_reasons": [
-                    "Matches Laptops category",
-                    "Within $1,000 budget",
-                ],
-            },
-        ]
+    query_lower = query.lower()
+
+    macbook = {
+        "id": "4",
+        "name": "MacBook Air M3",
+        "brand": "Apple",
+        "category": "Laptops",
+        "price": 999.99,
+        "rating": 4.8,
+        "tags": (
+            "laptop, productivity, portable, programming"
+        ),
+        "features": (
+            "Apple silicon, long battery life, "
+            "lightweight design"
+        ),
+        "target_audience": (
+            "students, developers, professionals"
+        ),
+        "use_cases": (
+            "programming, studying, office work, travel"
+        ),
+        "rerank_score": 0.32,
+        "match_reasons": [
+            "Matches Laptops category",
+            "Supports programming",
+            "Within $1,000 budget",
+        ],
+    }
+
+    galaxy = {
+        "id": "5",
+        "name": "Galaxy Book4",
+        "brand": "Samsung",
+        "category": "Laptops",
+        "price": 849.99,
+        "rating": 4.4,
+        "tags": (
+            "laptop, windows, productivity, portable"
+        ),
+        "features": (
+            "portable design, high-resolution display, "
+            "multitasking"
+        ),
+        "target_audience": (
+            "students, professionals, business users"
+        ),
+        "use_cases": (
+            "office work, studying, browsing, productivity"
+        ),
+        "rerank_score": 0.17,
+        "match_reasons": [
+            "Matches Laptops category",
+            "Within $1,000 budget",
+        ],
+    }
+
+    if "cheaper" in query_lower:
+        return [galaxy]
 
     return [
-        {
-            "id": "5",
-            "name": "Galaxy Book4",
-            "brand": "Samsung",
-            "category": "Laptops",
-            "price": 849.99,
-            "rating": 4.4,
-            "tags": (
-                "laptop, windows, productivity, portable"
-            ),
-            "features": (
-                "portable design, high-resolution display, "
-                "multitasking"
-            ),
-            "target_audience": (
-                "students, professionals, business users"
-            ),
-            "use_cases": (
-                "office work, studying, browsing, productivity"
-            ),
-            "rerank_score": 0.17,
-            "match_reasons": [
-                "Matches Laptops category",
-                "Within $1,000 budget",
-            ],
-        }
+        macbook,
+        galaxy,
     ]
+
+
+def fake_generate_response(
+    prompt: str,
+    max_output_tokens: int = 200,
+):
+    """
+    Deterministic response for the memory test.
+
+    This prevents the test from calling OpenAI/Azure OpenAI.
+    """
+
+    return "Mock grounded shopping response."
 
 
 def test_shopping_graph_preserves_conversation_memory():
@@ -123,9 +116,13 @@ def test_shopping_graph_preserves_conversation_memory():
             "app.agents.shopping_graph.search_products",
             side_effect=fake_search_products,
         ),
+        patch(
+            "app.agents.shopping_graph.generate_response",
+            side_effect=fake_generate_response,
+        ),
     ):
         # ----------------------------------------------------
-        # First turn
+        # FIRST TURN
         # ----------------------------------------------------
 
         first_turn = shopping_graph.invoke(
@@ -143,7 +140,7 @@ def test_shopping_graph_preserves_conversation_memory():
         assert first_turn["recommendations"]
 
         # ----------------------------------------------------
-        # Second turn
+        # SECOND TURN
         # ----------------------------------------------------
 
         second_turn = shopping_graph.invoke(
@@ -164,7 +161,14 @@ def test_shopping_graph_preserves_conversation_memory():
 
         assert second_turn["recommendations"]
 
-        # User + assistant messages from both turns.
+        # The cheaper follow-up should return Galaxy Book4.
+        assert (
+            second_turn["recommendations"][0]["product"]["name"]
+            == "Galaxy Book4"
+        )
+
+        # Conversation memory should contain the previous
+        # user/assistant interaction and the current turn.
         assert len(
             second_turn["conversation_history"]
         ) >= 3
