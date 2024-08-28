@@ -50,6 +50,7 @@ class ShoppingState(TypedDict, total=False):
 
     # Structured query intent.
     intent: dict
+    is_casual: bool
 
     # Short-term conversation memory.
     conversation_history: list[dict]
@@ -76,6 +77,7 @@ class ShoppingState(TypedDict, total=False):
     is_comparison: bool
     comparison_product_ids: list[int]
     comparison_result: dict | None
+    previous_comparison_products: list[dict]
 
     # Grounding.
     grounding_context: str
@@ -405,7 +407,30 @@ Deterministic highest-rated product:
         context_lines
     )
 
+def _is_casual_query(query: str) -> bool:
+    """
+    Detect simple conversational queries that do not require
+    product search or recommendation.
+    """
 
+    normalized = query.lower().strip()
+
+    casual_phrases = {
+        "hi",
+        "hello",
+        "hey",
+        "hiya",
+        "thanks",
+        "thank you",
+        "good morning",
+        "good afternoon",
+        "good evening",
+        "what can you do",
+        "what do you do",
+        "help",
+    }
+
+    return normalized in casual_phrases
 # ============================================================
 # QUERY UNDERSTANDING
 # ============================================================
@@ -445,10 +470,14 @@ def understand_query_node(
     is_comparison = _is_comparison_query(
         query
     )
+    is_casual = _is_casual_query(
+        query
+    )
 
     return {
         **state,
         "query": query,
+        "is_casual": is_casual,
         "intent": {
             "category": intent.category,
             "use_case": intent.use_case,
@@ -491,8 +520,89 @@ def resolve_followup_node(
         [],
     )
 
+    previous_comparison_products = state.get(
+        "previous_comparison_products",
+        [],
+    )
+    print("\n========== FOLLOW-UP DEBUG ==========")
+    print("QUERY:", query)
+    print(
+        "PREVIOUS RECOMMENDATIONS:",
+        previous_recommendations,
+    )
+    print(
+        "PREVIOUS COMPARISON PRODUCTS:",
+        previous_comparison_products,
+    )
+    print(
+        "FOLLOWUP TYPE:",
+        state.get("followup_type"),
+    )
+    print(
+        "RESOLVED QUERY:",
+        state.get("resolved_query"),
+    )
+    print("=====================================\n")
     # --------------------------------------------------------
-    # Comparison requests do not go through follow-up logic.
+    # Comparison follow-up using previous comparison products.
+    # --------------------------------------------------------
+
+    comparison_followup_phrases = [
+        "which one is better",
+        "which is better",
+        "which one should i choose",
+        "which should i choose",
+        "which one is best",
+        "which is best",
+        "better for programming",
+        "better for coding",
+        "best for programming",
+        "best for coding",
+        "which one do you recommend",
+        "which do you recommend",
+    ]
+
+    is_comparison_followup = any(
+        phrase in normalized
+        for phrase in comparison_followup_phrases
+    )
+
+    if is_comparison_followup:
+
+        comparison_products = (
+            previous_comparison_products
+        )
+
+        # If we don't already have comparison products,
+        # reuse the most recent recommendations.
+        if len(comparison_products) < 2:
+
+            comparison_products = []
+
+            for recommendation in previous_recommendations:
+
+                product = _unwrap_recommendation(
+                    recommendation
+                )
+
+                if product:
+                    comparison_products.append(
+                        product
+                    )
+
+        if len(comparison_products) >= 2:
+
+            return {
+                **state,
+                "is_comparison": True,
+                "resolved_query": query,
+                "previous_comparison_products": (
+                    comparison_products
+                ),
+            }
+
+    # --------------------------------------------------------
+    # Comparison requests do not go through normal follow-up logic.
     # --------------------------------------------------------
 
     if state.get("is_comparison"):
@@ -500,7 +610,21 @@ def resolve_followup_node(
             **state,
             "resolved_query": query,
         }
+    # --------------------------------------------------------
+    # Build comparison memory from previous recommendations
+    # if comparison memory does not already exist.
+    # --------------------------------------------------------
 
+    if (
+        len(previous_comparison_products) < 2
+        and len(previous_recommendations) >= 2
+    ):
+        previous_comparison_products = [
+            _unwrap_recommendation(
+                recommendation
+            )
+            for recommendation in previous_recommendations
+        ]
     # --------------------------------------------------------
     # No previous recommendations.
     # --------------------------------------------------------
@@ -594,6 +718,10 @@ def resolve_followup_node(
     # CHEAPER
     # ========================================================
 
+        # ========================================================
+    # CHEAPER
+    # ========================================================
+
     if (
         "cheaper" in normalized
         or "lower price" in normalized
@@ -651,10 +779,9 @@ def resolve_followup_node(
                     max_previous_price
                 ),
             }
-
-    # ========================================================
-    # MORE EXPENSIVE
-    # ========================================================
+# ========================================================
+# MORE EXPENSIVE
+# ========================================================
 
     if (
         "more expensive" in normalized
@@ -712,8 +839,13 @@ def resolve_followup_node(
                 "followup_min_price": (
                     min_previous_price
                 ),
+                "previous_category": (
+                    previous_category
+                ),
+                "previous_recommendations": (
+                    previous_recommendations
+                ),
             }
-
     # ========================================================
     # WINDOWS
     # ========================================================
@@ -772,17 +904,32 @@ def comparison_node(
 
     query = state["query"].strip()
 
+    previous_comparison_products = state.get(
+        "previous_comparison_products",
+        [],
+    )
+
+    products: list[dict[str, Any]] = []
+
     # --------------------------------------------------------
-    # Try explicit numeric IDs first.
+    # Reuse products from the previous comparison.
+    # This handles follow-ups such as:
+    # "Which one is better for programming?"
+    # --------------------------------------------------------
+
+    if len(previous_comparison_products) >= 2:
+        products = previous_comparison_products
+
+    # --------------------------------------------------------
+    # Try explicit numeric IDs if we still do not have two
+    # products from previous comparison memory.
     # --------------------------------------------------------
 
     product_ids = _extract_product_ids_from_query(
         query
     )
 
-    products: list[dict[str, Any]] = []
-
-    if len(product_ids) >= 2:
+    if len(products) < 2 and len(product_ids) >= 2:
 
         for product_id in product_ids:
 
@@ -816,6 +963,84 @@ def comparison_node(
             products = _find_products_by_name(
                 product_names
             )
+        # --------------------------------------------------------
+    # Fallback: recover comparison products when conversation
+    # memory contains fewer than two products.
+    #
+    # This is important for follow-ups such as:
+    #
+    # "which one is better for programming?"
+    #
+    # after:
+    #
+    # "I need a laptop under $1000 for programming"
+    # "show me cheaper ones"
+    #
+    # The cheaper follow-up may leave only Galaxy Book4 in
+    # the latest recommendations. We therefore search the
+    # laptop catalog again for the comparison context.
+    # --------------------------------------------------------
+
+    if len(products) < 2:
+
+        fallback_results = search_products(
+            query="laptops",
+            top_k=20,
+        )
+
+        # Keep only products that are actually laptops.
+        laptop_products = []
+
+        for product in fallback_results:
+
+            category = str(
+                product.get("category")
+                or ""
+            ).lower()
+
+            name = str(
+                product.get("name")
+                or ""
+            ).lower()
+
+            tags = str(
+                product.get("tags")
+                or ""
+            ).lower()
+
+            if (
+                "laptop" in category
+                or "laptop" in name
+                or "laptop" in tags
+            ):
+                laptop_products.append(
+                    product
+                )
+
+        # If we already have one remembered product,
+        # don't duplicate it.
+        existing_ids = {
+            str(product.get("id"))
+            for product in products
+            if product.get("id") is not None
+        }
+
+        for product in laptop_products:
+
+            product_id = str(
+                product.get("id")
+            )
+
+            if product_id in existing_ids:
+                continue
+
+            products.append(product)
+
+            existing_ids.add(product_id)
+
+            if len(products) >= 2:
+                break
+
 
     # --------------------------------------------------------
     # Deterministic comparison.
@@ -832,6 +1057,7 @@ def comparison_node(
             for product in products
             if product.get("id") is not None
         ],
+        "previous_comparison_products": products,
         "comparison_result": comparison_result,
         "recommendations": [],
         "search_results": [],
@@ -916,20 +1142,99 @@ def filter_products_node(
 ) -> ShoppingState:
     """
     Apply deterministic structured filters.
+
+    Handles:
+        - category
+        - price
+        - rating
+        - use case
+        - cheaper follow-ups
+        - more-expensive follow-ups
+        - Windows follow-ups
     """
+
+    # --------------------------------------------------------
+    # Comparison requests bypass normal filtering.
+    # --------------------------------------------------------
 
     if state.get("is_comparison"):
         return state
+
+    # --------------------------------------------------------
+    # Get search results.
+    # --------------------------------------------------------
 
     results = state.get(
         "search_results",
         [],
     )
+    # --------------------------------------------------------
+# Preserve comparison products.
+# --------------------------------------------------------
+
+    previous_comparison_products = state.get(
+        "previous_comparison_products",
+        [],
+    )
+
+    # Only establish comparison memory from a normal
+    # recommendation request.
+    #
+    # Do NOT create comparison memory from follow-ups such as:
+    #   - cheaper
+    #   - more expensive
+    #   - Windows
+    #
+    # Those requests should refine the existing conversation
+    # rather than replacing it with unrelated search results.
+
+    if (
+        not state.get("followup_type")
+        and len(previous_comparison_products) < 2
+    ):
+
+        comparison_candidates = []
+
+        for product in results:
+
+            comparison_candidates.append(
+                {
+                    "id": product.get("id"),
+                    "name": product.get("name"),
+                    "brand": product.get("brand"),
+                    "category": product.get("category"),
+                    "subcategory": product.get("subcategory"),
+                    "price": product.get("price"),
+                    "rating": product.get("rating"),
+                    "stock": product.get("stock"),
+                    "tags": product.get("tags"),
+                    "features": product.get("features"),
+                    "target_audience": product.get(
+                        "target_audience"
+                    ),
+                    "use_cases": product.get(
+                        "use_cases"
+                    ),
+                }
+            )
+
+        if len(comparison_candidates) >= 2:
+
+            previous_comparison_products = (
+                comparison_candidates[:2]
+            )
+    # --------------------------------------------------------
+    # Get structured intent.
+    # --------------------------------------------------------
 
     intent = state.get(
         "intent",
         {},
     )
+
+    # --------------------------------------------------------
+    # Apply normal deterministic filters.
+    # --------------------------------------------------------
 
     filtered_results = filter_products(
         results,
@@ -950,9 +1255,9 @@ def filter_products_node(
         ),
     )
 
-    # --------------------------------------------------------
-    # Strict cheaper follow-up.
-    # --------------------------------------------------------
+    # ========================================================
+    # CHEAPER FOLLOW-UP
+    # ========================================================
 
     if state.get(
         "followup_type"
@@ -967,17 +1272,17 @@ def filter_products_node(
             filtered_results = [
                 product
                 for product in filtered_results
-                if product.get(
-                    "price"
-                ) is not None
-                and float(
-                    product["price"]
-                ) < followup_max_price
+                if (
+                    product.get("price") is not None
+                    and float(
+                        product["price"]
+                    ) < followup_max_price
+                )
             ]
 
-    # --------------------------------------------------------
-    # Strict more-expensive follow-up.
-    # --------------------------------------------------------
+    # ========================================================
+    # MORE-EXPENSIVE FOLLOW-UP
+    # ========================================================
 
     if state.get(
         "followup_type"
@@ -987,25 +1292,99 @@ def filter_products_node(
             "followup_min_price"
         )
 
+        previous_category = state.get(
+            "previous_category"
+        )
+
         if followup_min_price is not None:
 
             filtered_results = [
                 product
                 for product in filtered_results
-                if product.get(
-                    "price"
-                ) is not None
-                and float(
-                    product["price"]
-                ) > followup_min_price
+                if (
+                    product.get("price") is not None
+                    and float(
+                        product["price"]
+                    ) > followup_min_price
+                    and (
+                        not previous_category
+                        or product.get(
+                            "category"
+                        ) == previous_category
+                    )
+                )
             ]
+
+    # ========================================================
+    # WINDOWS FOLLOW-UP
+    # ========================================================
+    #
+    # IMPORTANT:
+    #
+    # We only return products whose catalog data explicitly
+    # contains "windows".
+    #
+    # This prevents unrelated products from appearing merely
+    # because Azure AI Search returned them for the word
+    # "Windows".
+    # ========================================================
+
+    if state.get(
+        "followup_type"
+    ) == "windows":
+
+        def explicitly_windows(
+            product: dict,
+        ) -> bool:
+            """
+            Return True only when the product catalog data
+            explicitly identifies the product as Windows-related.
+            """
+
+            fields = [
+                product.get(
+                    "tags"
+                ),
+                product.get(
+                    "features"
+                ),
+                product.get(
+                    "use_cases"
+                ),
+                product.get(
+                    "name"
+                ),
+            ]
+
+            text = " ".join(
+                str(value or "")
+                for value in fields
+            ).lower()
+
+            return (
+                "windows" in text
+                or "microsoft windows" in text
+            )
+
+        filtered_results = [
+            product
+            for product in filtered_results
+            if explicitly_windows(
+                product
+            )
+        ]
+
+    # --------------------------------------------------------
+    # Return filtered state.
+    # --------------------------------------------------------
 
     return {
         **state,
         "filtered_results": filtered_results,
+        "previous_comparison_products": (
+            previous_comparison_products
+        ),
     }
-
-
 # ============================================================
 # RECOMMENDATIONS
 # ============================================================
@@ -1016,6 +1395,13 @@ def recommendation_node(
 ) -> ShoppingState:
     """
     Normalize search results into API recommendations.
+
+    Also preserves the products from the original recommendation
+    context so conversational comparison follow-ups such as:
+
+        "which one is better for programming?"
+
+    can compare the products from the previous conversation.
     """
 
     if state.get("is_comparison"):
@@ -1095,12 +1481,75 @@ def recommendation_node(
             }
         )
 
+    # --------------------------------------------------------
+    # Preserve previous recommendations.
+    # --------------------------------------------------------
+
+    previous_recommendations = (
+        state.get(
+            "previous_recommendations",
+            [],
+        )
+    )
+
+    # --------------------------------------------------------
+    # Preserve comparison products.
+    #
+    # If we already have two products from an earlier
+    # recommendation/comparison context, keep them.
+    #
+    # Otherwise, use the current recommendations.
+    # --------------------------------------------------------
+
+    previous_comparison_products = (
+        state.get(
+            "previous_comparison_products",
+            [],
+        )
+    )
+
+    # Keep comparison context across follow-up turns.
+    # Example:
+    #   Turn 1 -> MacBook Air M3
+    #   Turn 2 -> Galaxy Book4
+    #   Turn 3 -> "which one is better for programming?"
+    #
+    # Do not replace the first product when the follow-up
+    # returns only one product. Merge the products instead.
+    current_products = [
+        recommendation["product"]
+        for recommendation in recommendations
+    ]
+
+    existing_ids = {
+        str(product.get("id"))
+        for product in previous_comparison_products
+        if product.get("id") is not None
+    }
+
+    for product in current_products:
+        product_id = product.get("id")
+
+        if product_id is None:
+            continue
+
+        if str(product_id) not in existing_ids:
+            previous_comparison_products.append(product)
+            existing_ids.add(str(product_id))
+
+        if len(previous_comparison_products) >= 2:
+            break
+
     return {
         **state,
         "recommendations": recommendations,
+        "previous_recommendations": (
+            recommendations
+        ),
+        "previous_comparison_products": (
+            previous_comparison_products
+        ),
     }
-
-
 # ============================================================
 # GROUNDING VALIDATION
 # ============================================================
@@ -1248,58 +1697,68 @@ def _build_llm_prompt(
         )
 
         return f"""
-You are an AI shopping assistant.
+    You are an AI shopping assistant.
 
-The user asked:
+    The user asked:
 
-{state["query"]}
+    {state["query"]}
 
-This is a product comparison request.
+    This is a product comparison request.
 
-The comparison was performed deterministically
-using authoritative catalog data.
+    The comparison was performed deterministically
+    using authoritative catalog data.
 
-You MUST ONLY use the comparison data below.
+    You MUST ONLY use the comparison data below.
 
-Never invent:
-- specifications
-- performance
-- features
-- use cases
-- compatibility
-- prices
-- ratings
+    Never invent:
+    - specifications
+    - performance
+    - features
+    - use cases
+    - compatibility
+    - prices
+    - ratings
 
-For the comparison, clearly provide:
+    Answer the user's actual question FIRST.
 
-1. Product names
-2. Prices
-3. Ratings
-4. Brands
-5. Categories
-6. Features
-7. Target audience
-8. Use cases
-9. Which product is cheaper
-10. Which product is higher rated
+    If the user asks which product is better for programming,
+    compare the products specifically for programming.
 
-If programming support is discussed, only say that a
-product supports programming when the catalog explicitly
-lists "programming" as a use case.
+    A product supports programming ONLY if the catalog
+    explicitly lists "programming" as a use case.
 
-If a product does not explicitly list programming,
-say that the catalog does not confirm programming support.
+    Do NOT assume a product supports programming just
+    because it is a laptop.
 
-Do not infer that a laptop supports programming simply
-because it is a laptop.
+    For a programming comparison, use this format:
 
-Keep the response concise and useful.
+    ### Recommendation
 
-BEGIN DETERMINISTIC COMPARISON DATA
-{state.get("grounding_context", "")}
-END DETERMINISTIC COMPARISON DATA
-""".strip()
+    **[Product name]** is better for programming based on
+    the available catalog data.
 
+    ### Why
+
+    - **[Product 1]:** Explain whether programming is explicitly
+    listed in its catalog use cases.
+    - **[Product 2]:** Explain whether programming is explicitly
+    listed in its catalog use cases.
+    - Mention the rating difference if useful.
+
+    ### Price
+
+    - [Product 1]&#58; $X
+    - [Product 2]&#58; $X
+
+    Keep the response concise.
+
+    Do not provide unnecessary comparison sections unless
+    the user specifically asks for a detailed comparison.
+
+    BEGIN DETERMINISTIC COMPARISON DATA
+    {state.get("grounding_context", "")}
+    END DETERMINISTIC COMPARISON DATA
+    """.strip()
     # ========================================================
     # NORMAL SHOPPING PROMPT
     # ========================================================
@@ -1373,15 +1832,26 @@ def response_node(
 ) -> ShoppingState:
     """
     Generate the final grounded response.
+
+    For normal recommendations:
+        Use the LLM with the grounded product context.
+
+    For comparison follow-ups such as:
+        "Which one is better for programming?"
+        "Which is cheaper?"
+        "Which one has the better rating?"
+
+    use the previously resolved comparison products and
+    generate a concise comparison-focused answer.
     """
 
-    if not state.get(
-        "grounding_valid"
-    ):
+    # --------------------------------------------------------
+    # INVALID / NO GROUNDING
+    # --------------------------------------------------------
 
-        if state.get(
-            "is_comparison"
-        ):
+    if not state.get("grounding_valid"):
+
+        if state.get("is_comparison"):
 
             response = (
                 "I could not find both products "
@@ -1390,34 +1860,282 @@ def response_node(
                 "if available."
             )
 
-            history = state.get(
-                "conversation_history",
-                [],
+        else:
+
+            response = (
+                "I could not find products matching "
+                "your request."
             )
 
-            updated_history = [
-                *history,
-                {
-                    "role": "assistant",
-                    "content": response,
-                },
-            ]
+        history = state.get(
+            "conversation_history",
+            [],
+        )
 
-            return {
-                **state,
-                "response": response,
-                "conversation_history": (
-                    updated_history
-                ),
-            }
+        updated_history = [
+            *history,
+            {
+                "role": "assistant",
+                "content": response,
+            },
+        ]
 
         return {
             **state,
-            "response": (
-                "I could not find products matching "
-                "your request."
-            ),
+            "response": response,
+            "conversation_history": updated_history,
         }
+
+    # ========================================================
+    # COMPARISON / COMPARISON FOLLOW-UP
+    # ========================================================
+
+    if state.get("is_comparison"):
+
+        products = state.get(
+            "previous_comparison_products",
+            [],
+        )
+
+        # ----------------------------------------------------
+        # If this is a comparison follow-up, use the products
+        # remembered from the previous comparison.
+        # ----------------------------------------------------
+
+        if (
+            len(products) >= 2
+            and state.get("followup_type")
+            not in {
+                "cheaper",
+                "more_expensive",
+                "windows",
+            }
+        ):
+
+            query = state.get(
+                "query",
+                "",
+            ).lower()
+
+            product_a = products[0]
+            product_b = products[1]
+
+            name_a = product_a.get(
+                "name",
+                "Product 1",
+            )
+
+            name_b = product_b.get(
+                "name",
+                "Product 2",
+            )
+
+            # =================================================
+            # PROGRAMMING FOLLOW-UP
+            # =================================================
+
+            if (
+                "programming" in query
+                or "coding" in query
+                or "developer" in query
+            ):
+
+                use_cases_a = product_a.get(
+                    "use_cases",
+                    [],
+                )
+
+                use_cases_b = product_b.get(
+                    "use_cases",
+                    [],
+                )
+
+                if isinstance(
+                    use_cases_a,
+                    str,
+                ):
+                    use_cases_a = [
+                        value.strip().lower()
+                        for value in use_cases_a.split(",")
+                    ]
+                else:
+                    use_cases_a = [
+                        str(value).strip().lower()
+                        for value in use_cases_a
+                    ]
+
+                if isinstance(
+                    use_cases_b,
+                    str,
+                ):
+                    use_cases_b = [
+                        value.strip().lower()
+                        for value in use_cases_b.split(",")
+                    ]
+                else:
+                    use_cases_b = [
+                        str(value).strip().lower()
+                        for value in use_cases_b
+                    ]
+
+                programming_a = (
+                    "programming"
+                    in use_cases_a
+                )
+
+                programming_b = (
+                    "programming"
+                    in use_cases_b
+                )
+
+                rating_a = product_a.get(
+                    "rating"
+                )
+
+                rating_b = product_b.get(
+                    "rating"
+                )
+
+                if (
+                    programming_a
+                    and not programming_b
+                ):
+
+                    response = (
+                        f"**{name_a}** is the better "
+                        f"choice for programming based "
+                        f"on the available catalog data.\n\n"
+                        f"- **{name_a}:** Programming is "
+                        f"explicitly listed as a use case."
+                        f"\n"
+                        f"- **{name_b}:** The catalog does "
+                        f"not explicitly list programming "
+                        f"as a use case."
+                    )
+
+                    if (
+                        rating_a is not None
+                        and rating_b is not None
+                    ):
+                        response += (
+                            f"\n- **Ratings:** "
+                            f"{name_a} {rating_a} vs "
+                            f"{name_b} {rating_b}."
+                        )
+
+                    response += (
+                        f"\n\n**Recommendation:** "
+                        f"{name_a}."
+                    )
+
+                elif (
+                    programming_b
+                    and not programming_a
+                ):
+
+                    response = (
+                        f"**{name_b}** is the better "
+                        f"choice for programming based "
+                        f"on the available catalog data.\n\n"
+                        f"- **{name_b}:** Programming is "
+                        f"explicitly listed as a use case."
+                        f"\n"
+                        f"- **{name_a}:** The catalog does "
+                        f"not explicitly list programming "
+                        f"as a use case."
+                    )
+
+                    if (
+                        rating_a is not None
+                        and rating_b is not None
+                    ):
+                        response += (
+                            f"\n- **Ratings:** "
+                            f"{name_a} {rating_a} vs "
+                            f"{name_b} {rating_b}."
+                        )
+
+                    response += (
+                        f"\n\n**Recommendation:** "
+                        f"{name_b}."
+                    )
+
+                elif (
+                    programming_a
+                    and programming_b
+                ):
+
+                    response = (
+                        "Both products explicitly list "
+                        "programming as a use case.\n\n"
+                        f"- **{name_a}:** Programming "
+                        f"supported."
+                        f"\n"
+                        f"- **{name_b}:** Programming "
+                        f"supported."
+                    )
+
+                    if (
+                        rating_a is not None
+                        and rating_b is not None
+                    ):
+                        if rating_a > rating_b:
+                            better_rated = name_a
+                        elif rating_b > rating_a:
+                            better_rated = name_b
+                        else:
+                            better_rated = None
+
+                        response += (
+                            f"\n- **Ratings:** "
+                            f"{name_a} {rating_a} vs "
+                            f"{name_b} {rating_b}."
+                        )
+
+                        if better_rated:
+                            response += (
+                                f"\n\nBased on rating, "
+                                f"**{better_rated}** is "
+                                f"higher rated."
+                            )
+
+                else:
+
+                    response = (
+                        "Based on the available catalog "
+                        "data, I cannot confirm that either "
+                        "product supports programming.\n\n"
+                        f"- **{name_a}:** Programming is "
+                        f"not explicitly listed as a use case."
+                        f"\n"
+                        f"- **{name_b}:** Programming is "
+                        f"not explicitly listed as a use case."
+                    )
+
+                history = state.get(
+                    "conversation_history",
+                    [],
+                )
+
+                updated_history = [
+                    *history,
+                    {
+                        "role": "assistant",
+                        "content": response,
+                    },
+                ]
+
+                return {
+                    **state,
+                    "response": response,
+                    "conversation_history": (
+                        updated_history
+                    ),
+                }
+
+    # ========================================================
+    # NORMAL LLM RESPONSE
+    # ========================================================
 
     prompt = _build_llm_prompt(
         state
@@ -1448,8 +2166,69 @@ def response_node(
             updated_history
         ),
     }
+def casual_response_node(
+    state: ShoppingState,
+) -> ShoppingState:
+    """
+    Respond to simple conversational queries without
+    searching or recommending products.
+    """
 
+    query = state["query"].strip().lower()
 
+    if query in {
+        "hi",
+        "hello",
+        "hey",
+        "hiya",
+    }:
+        response = (
+            "Hi! I'm your shopping assistant. "
+            "Tell me what you're looking for, and "
+            "I can help you find or compare products."
+        )
+
+    elif query in {
+        "thanks",
+        "thank you",
+    }:
+        response = (
+            "You're welcome! Let me know if you need "
+            "help finding or comparing a product."
+        )
+
+    elif query in {
+        "what can you do",
+        "what do you do",
+        "help",
+    }:
+        response = (
+            "I can help you find products, filter them "
+            "by things like category, price, and use case, "
+            "and compare products using catalog information."
+        )
+
+    elif query in {
+        "good morning",
+        "good afternoon",
+        "good evening",
+    }:
+        response = (
+            "Hello! I'm your shopping assistant. "
+            "What are you looking for today?"
+        )
+
+    else:
+        response = (
+            "Hi! I'm your shopping assistant. "
+            "Tell me what product you're looking for."
+        )
+
+    return {
+        **state,
+        "response": response,
+        "recommendations": [],
+    }
 # ============================================================
 # ROUTING
 # ============================================================
@@ -1459,16 +2238,18 @@ def route_after_followup(
     state: ShoppingState,
 ) -> str:
     """
-    Route comparison requests directly to comparison_node.
+    Route casual queries directly to the response node,
+    comparison requests to comparison_node, and normal
+    shopping requests to the agent.
     """
 
-    if state.get(
-        "is_comparison"
-    ):
+    if state.get("is_casual"):
+        return "casual"
+
+    if state.get("is_comparison"):
         return "comparison"
 
     return "agent"
-
 
 # ============================================================
 # BUILD GRAPH
@@ -1570,6 +2351,10 @@ def build_shopping_graph():
         "response",
         response_node,
     )
+    graph.add_node(
+        "casual",
+        casual_response_node,
+    )
 
     # --------------------------------------------------------
     # Edges
@@ -1585,10 +2370,12 @@ def build_shopping_graph():
         "resolve_followup",
     )
 
+
     graph.add_conditional_edges(
         "resolve_followup",
         route_after_followup,
         {
+            "casual": "casual",
             "comparison": "comparison",
             "agent": "agent",
         },
@@ -1639,6 +2426,10 @@ def build_shopping_graph():
     graph.add_edge(
         "response",
         END,
+    )
+    graph.add_edge(
+    "casual",
+    END,
     )
 
     # --------------------------------------------------------

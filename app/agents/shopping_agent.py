@@ -30,9 +30,9 @@ def get_llm() -> AzureChatOpenAI:
     """
     Lazily create the Azure OpenAI client.
 
-    The client is NOT created during module import.
-    This is important because GitHub Actions runs tests without
-    the local Azure OpenAI credentials.
+    The client is created only when the shopping agent runs.
+    This allows tests to import the module without requiring
+    Azure OpenAI credentials during import time.
     """
 
     endpoint = os.getenv(
@@ -101,58 +101,185 @@ You help users:
 - understand product differences
 - identify cheaper products
 - identify higher-rated products
+- answer follow-up questions about products
 - make shopping decisions
 
-IMPORTANT RULES:
+============================================================
+CORE RULES
+============================================================
 
-1. Use the available product tools whenever the user refers
-   to specific product IDs.
+1. NEVER invent product information.
 
-2. If the user asks to compare specific products, use the
-   compare_catalog_products tool whenever possible.
+2. Use only information returned by the available product
+   tools.
 
-3. If the user provides product names instead of product IDs,
-   use the available product search/recommendation system to
-   identify the relevant products before comparing them.
+3. If the user refers to a specific product ID, use the
+   product-details tool.
 
-4. Never invent product information.
+4. If the user asks to compare specific products, use the
+   deterministic compare_catalog_products tool whenever
+   possible.
 
-5. Base comparisons only on information returned by the tools.
+5. If the user provides product names instead of IDs, use the
+   available catalog tools to identify the products.
 
-6. When comparing products, clearly mention when available:
+6. Product names must be resolved against the actual catalog.
+   Do not create fictional products.
+
+7. When comparing products, use only catalog information
+   returned by the tools.
+
+============================================================
+COMPARISON RULES
+============================================================
+
+8. A comparison should use the actual catalog products.
+
+9. When available, comparison information may include:
 
    - Product name
+   - Product ID
    - Price
    - Rating
    - Brand
    - Category
+   - Subcategory
    - Features
    - Target audience
    - Use cases
 
-7. If the user asks which product is cheaper, identify the
-   lower-priced product using the actual catalog prices.
+10. If the user asks which product is cheaper, compare the
+    actual catalog prices.
 
-8. If the user asks which product is better rated, identify
-   the product with the higher catalog rating.
+11. If the user asks which product is higher rated, compare
+    the actual catalog ratings.
 
-9. If a requested product cannot be found, clearly say so.
+12. Do not assume that two products are equivalent merely
+    because they have the same category.
 
-10. Do not assume that two products are equivalent merely
-    because they belong to the same category.
+============================================================
+FOLLOW-UP QUESTION RULES
+============================================================
 
-11. Do not invent specifications, operating systems,
-    processors, display specifications, battery life,
-    performance claims, or other product attributes.
+13. The user may ask a follow-up after a comparison.
 
-12. Keep responses concise but useful.
+    Example:
 
-13. When product IDs are mentioned, interpret them as database
-    product IDs and use the product-details or comparison tool.
+        User:
+        Compare MacBook Air M3 and Galaxy Book4.
 
-14. For product comparisons, prefer the deterministic
-    compare_catalog_products tool because it retrieves
-    authoritative catalog information.
+        User:
+        Which one is better for programming?
+
+14. For a follow-up question such as:
+
+        "Which one is better for programming?"
+
+    interpret "which one" as referring to the products from
+    the immediately preceding comparison context.
+
+15. Do NOT search for unrelated products when the user is
+    clearly referring to products from the previous comparison.
+
+16. If one product explicitly lists the requested use case
+    and another product does not explicitly list that use
+    case, say exactly that.
+
+    Example:
+
+        MacBook Air M3:
+        use_cases = programming, studying, office work, travel
+
+        Galaxy Book4:
+        use_cases = office work, studying, browsing, productivity
+
+    Correct conclusion:
+
+        "Programming is explicitly listed for MacBook Air M3.
+         The catalog does not explicitly list programming for
+         Galaxy Book4."
+
+17. Do NOT assume that a product supports a use case merely
+    because it:
+
+    - is a laptop
+    - is expensive
+    - has a high rating
+    - has a particular brand
+    - has a particular feature
+    - is marketed to professionals
+
+18. Only claim that a product supports a requested use case
+    when the catalog explicitly provides evidence for it.
+
+============================================================
+PRODUCT ATTRIBUTE RULES
+============================================================
+
+19. Do NOT invent:
+
+    - operating systems
+    - processors
+    - RAM
+    - storage
+    - display specifications
+    - battery specifications
+    - performance
+    - compatibility
+    - software support
+    - hardware specifications
+    - benchmarks
+    - technical capabilities
+
+20. If the catalog does not contain the requested information,
+    clearly say that the available catalog data does not
+    confirm it.
+
+============================================================
+RESPONSE STYLE
+============================================================
+
+21. Keep responses concise and useful.
+
+22. Answer the user's actual question directly.
+
+23. Do not repeat the entire comparison when the user asks a
+    narrow follow-up question.
+
+24. For example, if the user asks:
+
+        "Which one is better for programming?"
+
+    do NOT respond with all ten comparison categories.
+
+    Instead answer something like:
+
+        "MacBook Air M3 is the better choice based on the
+         catalog data. Programming is explicitly listed as
+         one of its use cases. Galaxy Book4 does not have
+         programming listed as a use case in the catalog."
+
+25. Do not add unsupported explanations such as:
+
+        "MacBook is better because macOS is good for developers."
+
+    unless the catalog explicitly provides that information.
+
+============================================================
+TOOL USAGE
+============================================================
+
+26. Prefer deterministic catalog tools over model reasoning.
+
+27. For explicit product IDs, use get_product_details.
+
+28. For comparisons, prefer compare_catalog_products.
+
+29. Always complete the required tool-call / ToolMessage
+    sequence correctly before requesting another model response.
+
+30. If a tool returns an error, clearly communicate the
+    limitation instead of inventing an answer.
 """
 
 
@@ -167,51 +294,130 @@ TOOLS = [
 
 
 # ============================================================
+# TOOL EXECUTION
+# ============================================================
+
+def _execute_tool(
+    tool_name: str,
+    tool_args: dict,
+):
+    """
+    Execute one of the supported shopping tools.
+    """
+
+    if tool_name == "get_product_details":
+
+        return get_product_details.invoke(
+            tool_args
+        )
+
+    if tool_name == "compare_catalog_products":
+
+        return compare_catalog_products.invoke(
+            tool_args
+        )
+
+    return {
+        "error": (
+            f"Unknown tool requested: "
+            f"{tool_name}"
+        )
+    }
+
+
+# ============================================================
 # SHOPPING AGENT
 # ============================================================
 
 def run_shopping_agent(
     query: str,
+    conversation_history: list[dict] | None = None,
 ):
     """
     Run the tool-calling shopping agent.
+
+    conversation_history allows LangGraph to provide the
+    previous conversation context.
+
+    This is important for follow-up questions such as:
+
+        Compare MacBook Air M3 and Galaxy Book4.
+
+        Which one is better for programming?
+
+    Without conversation history, the second question is
+    ambiguous to the model.
 
     Available tools:
 
         - get_product_details
         - compare_catalog_products
-
-    The tool loop guarantees that every assistant tool call
-    receives exactly one corresponding ToolMessage before
-    another LLM request is made.
-
-    This is required by the OpenAI tool-calling protocol.
     """
 
     llm = get_llm()
-
-    # --------------------------------------------------------
-    # Bind tools to the model
-    # --------------------------------------------------------
 
     llm_with_tools = llm.bind_tools(
         TOOLS
     )
 
     # --------------------------------------------------------
-    # Initial conversation
+    # Build conversation
     # --------------------------------------------------------
 
     messages = [
         (
             "system",
             SYSTEM_PROMPT,
-        ),
+        )
+    ]
+
+    # --------------------------------------------------------
+    # Add previous conversation
+    # --------------------------------------------------------
+
+    if conversation_history:
+
+        for item in conversation_history:
+
+            role = item.get(
+                "role"
+            )
+
+            content = item.get(
+                "content"
+            )
+
+            if not content:
+                continue
+
+            if role == "user":
+
+                messages.append(
+                    (
+                        "human",
+                        content,
+                    )
+                )
+
+            elif role == "assistant":
+
+                messages.append(
+                    (
+                        "assistant",
+                        content,
+                    )
+                )
+
+    # --------------------------------------------------------
+    # Add current user query
+    # --------------------------------------------------------
+
+    messages.append(
         (
             "human",
             query,
-        ),
-    ]
+        )
+    )
 
     # --------------------------------------------------------
     # Tool-calling loop
@@ -223,17 +429,25 @@ def run_shopping_agent(
 
     for _ in range(max_tool_rounds):
 
-        # ----------------------------------------------------
-        # Ask the model what to do
-        # ----------------------------------------------------
+        try:
+            result = llm_with_tools.invoke(
+                messages
+            )
 
-        result = llm_with_tools.invoke(
-            messages
-        )
+        except Exception as exc:
+            error_text = str(exc)
 
-        # ----------------------------------------------------
-        # Check whether the model requested tools
-        # ----------------------------------------------------
+            if (
+                "429" in error_text
+                or "rate_limit" in error_text
+                or "Too Many Requests" in error_text
+            ):
+                raise RuntimeError(
+                    "Azure OpenAI is temporarily rate limited. "
+                    "Please wait a few minutes and try again."
+                ) from exc
+
+            raise
 
         tool_calls = getattr(
             result,
@@ -242,19 +456,17 @@ def run_shopping_agent(
         )
 
         # ----------------------------------------------------
-        # No tools requested.
-        #
-        # The model has produced the final answer.
+        # Final answer
         # ----------------------------------------------------
 
         if not tool_calls:
+
             return result
 
         # ----------------------------------------------------
-        # IMPORTANT:
+        # Add assistant message containing tool calls.
         #
-        # Add the assistant message containing ALL tool calls
-        # before adding the ToolMessages.
+        # This MUST happen before ToolMessages.
         # ----------------------------------------------------
 
         messages.append(
@@ -262,10 +474,7 @@ def run_shopping_agent(
         )
 
         # ----------------------------------------------------
-        # Execute EVERY tool call.
-        #
-        # If the model requests two tools, both must receive
-        # a ToolMessage with their exact tool_call_id.
+        # Execute every requested tool.
         # ----------------------------------------------------
 
         for tool_call in tool_calls:
@@ -283,36 +492,12 @@ def run_shopping_agent(
                 "id"
             )
 
-            # ------------------------------------------------
-            # Execute the requested tool
-            # ------------------------------------------------
-
             try:
 
-                if tool_name == "get_product_details":
-
-                    tool_result = (
-                        get_product_details.invoke(
-                            tool_args
-                        )
-                    )
-
-                elif tool_name == "compare_catalog_products":
-
-                    tool_result = (
-                        compare_catalog_products.invoke(
-                            tool_args
-                        )
-                    )
-
-                else:
-
-                    tool_result = {
-                        "error": (
-                            f"Unknown tool requested: "
-                            f"{tool_name}"
-                        )
-                    }
+                tool_result = _execute_tool(
+                    tool_name,
+                    tool_args,
+                )
 
             except Exception as exc:
 
@@ -324,12 +509,8 @@ def run_shopping_agent(
                 }
 
             # ------------------------------------------------
-            # Send the result back to the model.
-            #
-            # CRITICAL:
-            #
-            # tool_call_id MUST exactly match the ID from
-            # the assistant tool call.
+            # Return the tool result using the exact
+            # tool_call_id generated by the model.
             # ------------------------------------------------
 
             messages.append(

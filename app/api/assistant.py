@@ -24,36 +24,53 @@ def recommend_products(
 ):
     """
     Run the LangGraph-powered shopping assistant.
+
+    Uses a persistent LangGraph thread so follow-up
+    questions can access previous conversation state.
     """
 
     initial_state = {
         "query": q.strip(),
         "top_k": top_k,
-        "conversation_history": [],
-        "previous_recommendations": [],
     }
 
-    # LangGraph checkpointer requires a thread_id.
     config = {
         "configurable": {
             "thread_id": "shopping-assistant-demo"
         }
     }
 
-    result = shopping_graph.invoke(
-        initial_state,
-        config=config,
-    )
+    try:
+        result = shopping_graph.invoke(
+            initial_state,
+            config=config,
+        )
 
-    recommendations = result.get(
-        "recommendations",
-        [],
-    )
+        recommendations = result.get(
+            "recommendations",
+            [],
+        )
 
-    return {
-        "query": q,
-        "assistant_response": result.get(
-            "response"
-        ),
-        "recommendations": recommendations,
-    }
+        return {
+            "query": q,
+            "assistant_response": result.get(
+                "response"
+            ),
+            "recommendations": recommendations,
+        }
+
+    except RuntimeError as exc:
+        error_message = str(exc)
+
+        if "rate limited" in error_message.lower():
+            return {
+                "query": q,
+                "assistant_response": (
+                    "The shopping assistant is temporarily "
+                    "rate limited by Azure OpenAI. "
+                    "Please wait a few minutes and try again."
+                ),
+                "recommendations": [],
+            }
+
+        raise

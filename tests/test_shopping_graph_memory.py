@@ -3,7 +3,10 @@ from unittest.mock import patch
 from app.agents.shopping_graph import shopping_graph
 
 
-def fake_run_shopping_agent(query: str):
+def fake_run_shopping_agent(
+    query: str,
+    conversation_history=None,
+):
     class FakeResult:
         content = f"Mock shopping response for: {query}"
         tool_calls = []
