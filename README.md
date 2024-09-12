@@ -84,7 +84,7 @@ Minimum price
 Maximum price
 Minimum rating
 
-# 🧠 Semantic Product Search
+## 🧠 Semantic Product Search
 
 Product queries can be converted into embeddings and used with **Azure AI Search vector search**.
 
