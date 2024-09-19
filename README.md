@@ -12,7 +12,7 @@ The project is designed as an end-to-end AI/ML backend system rather than a simp
 
 The core recommendation and conversational shopping workflow is implemented and covered by an automated test suite.
 
-### Current implementation
+### Current Implementation
 
 - FastAPI backend
 - PostgreSQL product catalog
@@ -73,16 +73,19 @@ Examples:
 
 ```text
 laptop under $1000 for programming
-running shoes for training 
+running shoes for training
 headphones with good ratings
+```
 
 The query-understanding layer extracts structured constraints such as:
 
-Product category
-Use case
-Minimum price
-Maximum price
-Minimum rating
+- Product category
+- Use case
+- Minimum price
+- Maximum price
+- Minimum rating
+
+---
 
 ## 🧠 Semantic Product Search
 
@@ -94,30 +97,41 @@ The embedding layer uses:
 
 ```text
 all-MiniLM-L6-v2
+```
+
 Product embeddings can be generated offline and persisted in:
 
+```text
 data/product_embeddings.json
+```
 
 This avoids repeatedly generating embeddings for every catalog product.
 
-#🎯 Deterministic Filtering
+---
+
+# 🎯 Deterministic Filtering
+
 Important shopping constraints are enforced programmatically rather than relying entirely on an LLM.
 
 Supported constraints include:
 
-Category
-Minimum price
-Maximum price
-Minimum rating
-Use case
+- Category
+- Minimum price
+- Maximum price
+- Minimum rating
+- Use case
 
 For example:
 
+```text
 laptop under $1000
+```
 
 is converted into a structured price constraint and enforced by application logic.
 
 This helps prevent the LLM from recommending products that violate explicit user requirements.
+
+---
 
 # 📊 Product Reranking
 
@@ -133,6 +147,11 @@ Filtering
 Reranking
     ↓
 Recommendation
+```
+
+This separation allows retrieval and business-rule enforcement to remain deterministic and testable.
+
+---
 
 # 🤖 Agentic Tool Calling
 
@@ -159,42 +178,51 @@ Example:
 
 ```text
 Compare MacBook Air M3 and Galaxy Book4
+```
 
 The comparison system can evaluate:
 
-Product name
-Brand
-Category
-Price
-Rating
-Features
-Target audience
-Use cases
-Cheapest product
-Highest-rated product
-Supported use cases
+- Product name
+- Brand
+- Category
+- Price
+- Rating
+- Features
+- Target audience
+- Use cases
+- Cheapest product
+- Highest-rated product
+- Supported use cases
 
-Example comparison reasoning:
+### Example Comparison Reasoning
 
+```text
 MacBook Air M3
+
 - Programming explicitly listed as a use case
 - Rating: 4.8
 - Price: $999.99
+```
 
+```text
 Galaxy Book4
+
 - Programming not explicitly listed as a use case
 - Rating: 4.4
 - Price: $849.99
+```
 
 The system does not automatically infer that a product supports a capability simply because the product belongs to a particular category.
+
+---
 
 # 🎯 Grounded Product Responses
 
 A major design goal of the project is reducing product-related hallucinations.
 
-The assistant follows explicit grounding rules to ensure that product recommendations and comparisons are based only on authoritative catalog data.
+The assistant follows explicit grounding rules.
 
-### Grounding Principles
+## Grounding Principles
 
 - Only use features explicitly listed for an individual product.
 - Only use use cases explicitly listed for an individual product.
@@ -215,14 +243,22 @@ If the catalog contains:
 ```text
 MacBook Air M3
 use_cases = programming, studying, office work
+```
+
+but:
+
+```text
 Galaxy Book4
 use_cases = office work, studying, browsing, productivity
+```
 
-the assistant does not claim that Galaxy Book4 supports programming.
+the assistant does **not** claim that Galaxy Book4 supports programming.
 
 The absence of programming from the Galaxy Book4's catalog data means the system cannot confirm programming as a supported use case.
 
-This distinction is enforced through application logic and grounding rules, rather than relying on the LLM alone.
+This distinction is enforced through application logic and grounding rules rather than relying on the LLM alone.
+
+---
 
 # 💬 Conversational Follow-Ups
 
@@ -234,19 +270,50 @@ This allows users to ask follow-up questions without repeating the original requ
 
 ```text
 I need a laptop under $1000 for programming
+```
+
+The system can recommend:
+
+```text
 MacBook Air M3
-Follow-Up
+```
+
+### Follow-Up
+
+```text
 show me cheaper ones
+```
 
 The system resolves the follow-up against the previous shopping context and can return:
 
+```text
 Galaxy Book4 — $849.99
-Other Supported Conversational Examples
-show me more expensive ones
-show me Windows ones
-which one is better for programming?
+```
 
-The conversational state allows the assistant to interpret references such as "ones," "cheaper," "more expensive," and "which one" using the context of the previous shopping interaction.
+Other supported conversational examples include:
+
+```text
+show me more expensive ones
+```
+
+```text
+show me Windows ones
+```
+
+```text
+which one is better for programming?
+```
+
+The conversational state allows the assistant to interpret references such as:
+
+- "ones"
+- "cheaper"
+- "more expensive"
+- "which one"
+
+using the context of the previous shopping interaction.
+
+---
 
 # 🧠 Conversational Workflow
 
@@ -300,7 +367,9 @@ Product Tools   Vector Search
             │
             ▼
       Final Response
+```
 
+---
 
 # 🏗️ Architecture
 
@@ -376,6 +445,9 @@ Product Tools   Vector Search
                      ┌─────────────────────┐
                      │ Final Response      │
                      └─────────────────────┘
+```
+
+---
 
 # 🧩 Technical Design
 
@@ -406,7 +478,9 @@ The LLM is primarily used for:
 - Agentic tool selection
 - Final response generation
 
-This architecture reduces the amount of critical business logic delegated to the LLM and improves **reliability, consistency, and grounding**.
+This architecture reduces the amount of critical business logic delegated to the LLM.
+
+---
 
 # 📁 Project Structure
 
@@ -528,6 +602,9 @@ ai-ecommerce-shopping-assistant/
 ├── alembic.ini
 ├── .env.example
 └── README.md
+```
+
+---
 
 # 🛠️ Tech Stack
 
@@ -561,9 +638,17 @@ ai-ecommerce-shopping-assistant/
 
 ```http
 GET /health
+```
+
+Example response:
+
+```json
 {
   "status": "healthy"
 }
+```
+
+---
 
 ## Root Endpoint
 
@@ -571,10 +656,18 @@ GET /health
 
 ```http
 GET /
+```
+
+Example response:
+
+```json
 {
   "message": "AI E-Commerce Shopping Assistant API",
   "version": "0.1.0"
 }
+```
+
+---
 
 ## Product Recommendations
 
@@ -582,7 +675,17 @@ GET /
 
 ```http
 GET /assistant/recommend
+```
+
+Example:
+
+```bash
 curl "http://127.0.0.1:8000/assistant/recommend?q=I%20need%20a%20laptop%20under%20%241000%20for%20programming&top_k=5"
+```
+
+Example response:
+
+```text
 Here’s a laptop that fits your request
 (under $1000 for programming):
 
@@ -593,6 +696,9 @@ Programming is explicitly listed as a use case.
 
 Within budget:
 $999.99 is within the $1000 limit.
+```
+
+---
 
 # 💡 Example Queries
 
@@ -600,12 +706,39 @@ $999.99 is within the $1000 limit.
 
 ```text
 I need a laptop under $1000 for programming
-show me cheaper ones
-show me Windows ones
-compare MacBook Air M3 and Galaxy Book4
-which one is better for programming?
-show me laptops
+```
 
+### Follow-Up
+
+```text
+show me cheaper ones
+```
+
+### Operating System
+
+```text
+show me Windows ones
+```
+
+### Comparison
+
+```text
+compare MacBook Air M3 and Galaxy Book4
+```
+
+### Recommendation Reasoning
+
+```text
+which one is better for programming?
+```
+
+### General Product Search
+
+```text
+show me laptops
+```
+
+---
 
 # 🧪 Example Conversation
 
@@ -618,12 +751,31 @@ MacBook Air M3 — $999.99
 
 Programming is explicitly listed as a use case.
 The product is within the $1000 budget.
+```
 
+Then:
+
+```text
 User:
 show me cheaper ones
+```
+
+The assistant resolves the follow-up against the previous shopping context:
+
+```text
 Galaxy Book4 — $849.99
+```
+
+Then:
+
+```text
 User:
 show me Windows ones
+```
+
+The system can resolve the request against the available catalog data and return the matching Windows product.
+
+---
 
 # 🧪 Testing
 
@@ -650,7 +802,17 @@ The project includes a comprehensive automated test suite covering:
 
 ```bash
 pytest
+```
+
+## Current Test Suite
+
+```text
 118 passed
+```
+
+The tests also mock external services where appropriate so core application behavior can be tested without depending on live Azure services.
+
+---
 
 # 🔐 Environment Variables
 
@@ -669,8 +831,25 @@ AZURE_OPENAI_ENDPOINT=https://YOUR-AZURE-OPENAI.openai.azure.com/
 AZURE_OPENAI_API_KEY=YOUR_AZURE_OPENAI_API_KEY
 AZURE_OPENAI_DEPLOYMENT=YOUR_DEPLOYMENT
 AZURE_OPENAI_API_VERSION=YOUR_API_VERSION
+```
+
+> **⚠️ Security:** Never commit real credentials, API keys, passwords, or other secrets to GitHub.
+
+The repository uses:
+
+```text
 .env
+```
+
+in `.gitignore`.
+
+A template is provided through:
+
+```text
 .env.example
+```
+
+---
 
 # 🚀 Local Setup
 
@@ -679,32 +858,97 @@ AZURE_OPENAI_API_VERSION=YOUR_API_VERSION
 ```bash
 git clone https://github.com/anvithayerneni/ai-ecommerce-shopping-assistant.git
 cd ai-ecommerce-shopping-assistant
+```
+
+---
 
 ## 2. Create a Virtual Environment
 
 ```bash
 python3 -m venv .venv
+```
+
+Activate it:
+
+### macOS / Linux
+
+```bash
 source .venv/bin/activate
+```
+
+### Windows
+
+```powershell
 .venv\Scripts\activate
+```
+
+---
 
 ## 3. Install Dependencies
 
 ```bash
 pip install -r requirements.txt
+```
+
+---
 
 ## 4. Configure Environment Variables
+
+Copy:
+
+```text
 .env.example
+```
+
+to:
+
+```text
 .env
+```
+
+Then configure the required database, Azure AI Search, and Azure OpenAI variables.
+
+---
 
 ## 5. Run Database Migrations
+
 ```bash
 alembic upgrade head
+```
+
+---
 
 ## 6. Start the API
 
 ```bash
 uvicorn app.main:app --reload
+```
+
+The API will be available at:
+
+```text
 http://127.0.0.1:8000
+```
+
+---
+
+# 📖 API Documentation
+
+FastAPI automatically provides interactive API documentation.
+
+## Swagger UI
+
+```text
+http://127.0.0.1:8000/docs
+```
+
+## ReDoc
+
+```text
+http://127.0.0.1:8000/redoc
+```
+
+---
 
 # 🐳 Docker
 
@@ -714,7 +958,23 @@ The project also includes Docker configuration.
 
 ```bash
 docker build -t ai-ecommerce-shopping-assistant .
+```
+
+## Run
+
+```bash
+docker run -p 8000:8000 ai-ecommerce-shopping-assistant
+```
+
+The repository also contains:
+
+```text
 docker-compose.yml
+```
+
+for local multi-service development.
+
+---
 
 # ☁️ Deployment
 
@@ -735,6 +995,59 @@ The production architecture can use:
         │           │            │
         ▼           ▼            ▼
      Neon DB   Azure Search   Azure OpenAI
+```
+
+---
+
+# 📊 Example Catalog
+
+The project currently works with a product catalog containing approximately:
+
+```text
+1,010 products
+```
+
+The catalog contains product information such as:
+
+- Product ID
+- Product name
+- Brand
+- Category
+- Price
+- Rating
+- Tags
+- Features
+- Target audience
+- Use cases
+
+---
+
+# 🧪 Evaluation
+
+The project includes evaluation datasets for:
+
+```text
+data/recommendation_eval.json
+data/retrieval_eval.json
+```
+
+Evaluation scripts are available under:
+
+```text
+scripts/
+```
+
+including:
+
+```text
+evaluate_recommendations.py
+evaluate_retrieval.py
+evaluate_category_classifier.py
+```
+
+This provides a foundation for measuring recommendation and retrieval quality rather than relying exclusively on subjective evaluation.
+
+---
 
 # 📈 Engineering Highlights
 
@@ -778,37 +1091,13 @@ The production architecture can use:
 - Docker support
 - Git/GitHub workflow
 
-# 📊 Example Catalog
-
-The project currently works with a product catalog containing approximately:
-
-```text
-1,010 products
-The catalog contains product information such as:
-- Product ID
-- Product name
-- Brand
-- Category
-- Price
-- Rating
-- Tags
-- Features
-- Target audience
-- Use cases
-
-# 🧪 Evaluation
-
-The project includes evaluation datasets for:
-
-```text
-data/recommendation_eval.json
-data/retrieval_eval.json
+---
 
 # 🔒 Security
 
 Sensitive credentials are intentionally excluded from the repository.
 
-The following configuration values are stored through environment variables:
+The following are stored through environment variables:
 
 ```text
 DATABASE_URL
@@ -820,6 +1109,11 @@ AZURE_OPENAI_ENDPOINT
 AZURE_OPENAI_API_KEY
 AZURE_OPENAI_DEPLOYMENT
 AZURE_OPENAI_API_VERSION
+```
+
+The `.env` file is excluded using `.gitignore` to prevent sensitive credentials from being committed to the repository.
+
+---
 
 # 🧭 Future Improvements
 
@@ -841,6 +1135,8 @@ Possible future extensions include:
 - Automated evaluation pipelines
 - CI/CD deployment workflows
 
+---
+
 # 📌 Project Scope
 
 This project focuses on demonstrating an **end-to-end AI-powered shopping and recommendation architecture**.
@@ -855,44 +1151,16 @@ It is not intended to function as a production e-commerce marketplace with:
 
 Instead, the primary focus is on the **AI shopping and recommendation layer**, including product retrieval, filtering, ranking, comparison, grounded recommendations, agentic tool calling, and conversational interactions.
 
+---
+
 # 👩‍💻 Author
 
 **Anvitha Yerneni**
 
 AI / ML • Generative AI • Agentic AI • Python Backend
 
+---
+
 # 📜 License
 
 This project is intended for educational and portfolio purposes.
-
----
-
-## 📌 Project Status
-
-**Status: Completed**
-
-The project includes:
-
-- End-to-end AI-powered shopping and recommendation workflow
-- Agentic tool calling
-- Product search and retrieval
-- Deterministic filtering and ranking
-- Grounded product recommendations
-- Conversational follow-up support
-- LangGraph state management
-- Azure AI Search integration
-- Azure OpenAI integration
-- Automated test coverage with **118 passing tests**
-
-> **Security:** Do not include actual Azure API keys, Neon connection strings, database credentials, or `.env` contents in this README or commit them to GitHub. The `.env` file should remain excluded through `.gitignore`.
-
-## 🚀 Push Documentation Changes
-
-After updating `README.md`, run:
-
-```bash
-git status
-git add README.md
-git commit -m "Improve project documentation"
-git push origin main
-
