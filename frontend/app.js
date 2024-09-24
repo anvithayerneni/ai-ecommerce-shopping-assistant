@@ -1,4 +1,8 @@
-const API_BASE_URL = "http://127.0.0.1:8000";
+const API_BASE_URL = (
+    typeof window !== "undefined" &&
+    window.location &&
+    window.location.origin.startsWith("http")
+) ? window.location.origin : "http://127.0.0.1:8000";
 
 const searchInput = document.getElementById("searchInput");
 const searchButton = document.getElementById("searchButton");
@@ -110,7 +114,9 @@ function splitValues(value) {
 }
 
 
-function createProductCard(product) {
+function createProductCard(item) {
+    const product = item.product || item;
+    const matchReasons = item.match_reasons || [];
 
     const card = document.createElement("article");
 
@@ -149,7 +155,9 @@ function createProductCard(product) {
 
     description.textContent =
         product.description ||
-        "Recommended based on your shopping request.";
+        (matchReasons.length > 0
+            ? matchReasons.join(" • ")
+            : "Recommended based on your shopping request.");
 
 
     const meta =
@@ -351,6 +359,12 @@ async function searchProducts(query) {
             data.results ||
             [];
 
+        if (data.assistant_response) {
+            const aiMessage = document.getElementById("aiMessage");
+            if (aiMessage) {
+                aiMessage.textContent = data.assistant_response;
+            }
+        }
 
         renderProducts(
             products,

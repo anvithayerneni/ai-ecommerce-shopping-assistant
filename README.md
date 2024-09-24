@@ -1,8 +1,29 @@
 # 🛒 AI-Powered E-Commerce Shopping & Recommendation Assistant
 
+[![Live Demo](https://img.shields.io/badge/Live%20Demo-trycloudflare.com-success?style=for-the-badge&logo=cloudflare)](https://claims-java-ceremony-restrict.trycloudflare.com/demo/)
+[![Deploy to Render](https://img.shields.io/badge/Deploy%20to-Render-blue?style=for-the-badge&logo=render)](https://render.com)
+[![Tests](https://img.shields.io/badge/Tests-118%20Passing-brightgreen?style=for-the-badge&logo=pytest)](https://github.com/anvithayerneni/ai-ecommerce-shopping-assistant)
+[![FastAPI](https://img.shields.io/badge/FastAPI-0.141.1-009688?style=for-the-badge&logo=fastapi)](https://fastapi.tiangolo.com)
+[![LangGraph](https://img.shields.io/badge/LangGraph-Workflow-orange?style=for-the-badge)](https://langchain-ai.github.io/langgraph/)
+
+> 🌐 **Live Demo Web Interface:** [https://claims-java-ceremony-restrict.trycloudflare.com/demo/](https://claims-java-ceremony-restrict.trycloudflare.com/demo/)  
+> 📖 **Interactive API Docs (Swagger):** [https://claims-java-ceremony-restrict.trycloudflare.com/docs](https://claims-java-ceremony-restrict.trycloudflare.com/docs)  
+> 🏥 **Health Check:** [https://claims-java-ceremony-restrict.trycloudflare.com/health](https://claims-java-ceremony-restrict.trycloudflare.com/health)
+
 An AI-powered conversational shopping assistant that combines **semantic product search, deterministic filtering, product reranking, agentic tool calling, product comparison, conversational memory, and grounded LLM responses**.
 
 The project is designed as an end-to-end AI/ML backend system rather than a simple LLM chatbot. Product recommendations are grounded in a structured product catalog, while deterministic application logic is responsible for enforcing important constraints such as price, category, rating, and use case.
+
+---
+
+## 🚀 Live Demo & Deployment
+
+| Resource | Link | Description |
+| :--- | :--- | :--- |
+| **Live Web App** | [Live Shopping Assistant](https://claims-java-ceremony-restrict.trycloudflare.com/demo/) | Interactive web UI with natural language product search |
+| **API Health** | [/health](https://claims-java-ceremony-restrict.trycloudflare.com/health) | Backend health verification endpoint |
+| **Swagger API Docs** | [/docs](https://claims-java-ceremony-restrict.trycloudflare.com/docs) | OpenAPI interactive documentation and test console |
+| **Render Blueprint** | [`render.yaml`](file:///Users/anvithayerneni/.gemini/antigravity/scratch/ai-ecommerce-shopping-assistant/render.yaml) | 1-click zero-cost deployment configuration for Render |
 
 ---
 

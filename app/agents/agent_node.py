@@ -23,13 +23,19 @@ def run_agent_node(
         [],
     )
 
-    result = run_shopping_agent(
-        query=query,
-        conversation_history=conversation_history,
-    )
+    try:
+        result = run_shopping_agent(
+            query=query,
+            conversation_history=conversation_history,
+        )
+        agent_response = result.content
+        agent_tool_calls = getattr(result, "tool_calls", [])
+    except Exception:
+        agent_response = None
+        agent_tool_calls = []
 
     return {
         **state,
-        "agent_response": result.content,
-        "agent_tool_calls": result.tool_calls,
+        "agent_response": agent_response,
+        "agent_tool_calls": agent_tool_calls,
     }

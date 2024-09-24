@@ -11,7 +11,12 @@ from app.main import app
 
 @pytest.fixture
 def test_db() -> Session:
-    engine = create_engine(TEST_DATABASE_URL)
+    connect_args = (
+        {"check_same_thread": False}
+        if TEST_DATABASE_URL.startswith("sqlite")
+        else {}
+    )
+    engine = create_engine(TEST_DATABASE_URL, connect_args=connect_args)
 
     Base.metadata.drop_all(bind=engine)
     Base.metadata.create_all(bind=engine)

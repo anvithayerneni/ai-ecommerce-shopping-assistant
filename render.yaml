@@ -1,0 +1,16 @@
+services:
+  # 1. FastAPI Unified Web & Assistant Service (Free Tier)
+  - type: web
+    name: ai-ecommerce-assistant
+    runtime: python
+    region: oregon
+    plan: free
+    buildCommand: "pip install -r requirements.txt && python scripts/seed_products.py"
+    startCommand: "uvicorn app.main:app --host 0.0.0.0 --port $PORT"
+    envVars:
+      - key: DATABASE_URL
+        value: sqlite:///./shopping.db
+      - key: ENVIRONMENT
+        value: production
+      - key: PORT
+        value: 8000
