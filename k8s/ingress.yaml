@@ -1,0 +1,28 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: ecommerce-api-ingress
+  namespace: ecommerce-assistant
+  labels:
+    app.kubernetes.io/name: ai-ecommerce-shopping-assistant
+  annotations:
+    kubernetes.io/ingress.class: nginx
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "120"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "120"
+spec:
+  rules:
+    - host: assistant.ecommerce.internal
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: ecommerce-api-service
+                port:
+                  number: 80
+  tls:
+    - hosts:
+        - assistant.ecommerce.internal
+      secretName: ecommerce-api-tls

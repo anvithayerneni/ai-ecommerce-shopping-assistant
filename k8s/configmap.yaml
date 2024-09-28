@@ -1,0 +1,14 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ecommerce-config
+  namespace: ecommerce-assistant
+  labels:
+    app.kubernetes.io/name: ai-ecommerce-shopping-assistant
+data:
+  ENVIRONMENT: "production"
+  PORT: "8000"
+  AZURE_OPENAI_DEPLOYMENT: "shopping-assistant-gpt41-mini"
+  AZURE_OPENAI_API_VERSION: "2024-02-15-preview"
+  AZURE_SEARCH_INDEX_NAME: "ecommerce-products"
+  DATABASE_URL: "postgresql+psycopg://ecommerce:ecommerce_secure_pass@postgres-service:5432/ai_ecommerce"

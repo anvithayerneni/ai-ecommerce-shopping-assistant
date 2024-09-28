@@ -2,6 +2,7 @@
 
 [![Live Demo](https://img.shields.io/badge/Live%20Demo-trycloudflare.com-success?style=for-the-badge&logo=cloudflare)](https://claims-java-ceremony-restrict.trycloudflare.com/demo/)
 [![Deploy to Render](https://img.shields.io/badge/Deploy%20to-Render-blue?style=for-the-badge&logo=render)](https://render.com)
+[![Kubernetes](https://img.shields.io/badge/Kubernetes-Ready-326CE5?style=for-the-badge&logo=kubernetes&logoColor=white)](k8s/)
 [![Tests](https://img.shields.io/badge/Tests-118%20Passing-brightgreen?style=for-the-badge&logo=pytest)](https://github.com/anvithayerneni/ai-ecommerce-shopping-assistant)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.141.1-009688?style=for-the-badge&logo=fastapi)](https://fastapi.tiangolo.com)
 [![LangGraph](https://img.shields.io/badge/LangGraph-Workflow-orange?style=for-the-badge)](https://langchain-ai.github.io/langgraph/)
@@ -23,6 +24,7 @@ The project is designed as an end-to-end AI/ML backend system rather than a simp
 | **Live Web App** | [Live Shopping Assistant](https://claims-java-ceremony-restrict.trycloudflare.com/demo/) | Interactive web UI with natural language product search |
 | **API Health** | [/health](https://claims-java-ceremony-restrict.trycloudflare.com/health) | Backend health verification endpoint |
 | **Swagger API Docs** | [/docs](https://claims-java-ceremony-restrict.trycloudflare.com/docs) | OpenAPI interactive documentation and test console |
+| **Kubernetes Architecture** | [`k8s/` manifests](k8s/) | Production cloud-native deployment with HPA autoscaling, Ingress, and Secrets |
 | **Render Blueprint** | [`render.yaml`](file:///Users/anvithayerneni/.gemini/antigravity/scratch/ai-ecommerce-shopping-assistant/render.yaml) | 1-click zero-cost deployment configuration for Render |
 
 ---
@@ -55,7 +57,8 @@ The core recommendation and conversational shopping workflow is implemented and 
 - Product attribute grounding
 - Automated testing
 - **118 passing tests**
-- Docker configuration
+- Docker & Docker Compose configuration
+- Kubernetes cloud-native manifests & autoscaling (`k8s/`)
 - Streamlit frontend
 
 ---
