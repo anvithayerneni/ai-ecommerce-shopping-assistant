@@ -28,6 +28,8 @@ def create_product_endpoint(
     return create_product(db, product_data)
 
 
+
+
 @router.get(
     "",
     response_model=list[ProductResponse],
@@ -63,6 +65,19 @@ def get_products_endpoint(
         sort_order=sort_order,
     )
 
+@router.get(
+    "/search",
+)
+def search_products_endpoint(
+    q: str = Query(..., min_length=2),
+    top_k: int = Query(default=5, ge=1, le=20),
+):
+    from app.services.vector_search import search_products
+
+    return search_products(
+        query=q,
+        top_k=top_k,
+    )
 
 @router.get(
     "/{product_id}",

@@ -15,6 +15,7 @@ idna==3.18
 iniconfig==2.3.0
 Mako==1.4.1
 MarkupSafe==3.0.3
+numpy==2.4.6
 packaging==26.3
 pluggy==1.6.0
 psycopg==3.3.4
@@ -26,6 +27,7 @@ pytest==9.1.1
 python-dotenv==1.2.2
 PyYAML==6.0.3
 SQLAlchemy==2.0.52
+sentence-transformers==5.7.0
 starlette==1.6.0
 truststore==0.10.4
 typing-inspection==0.4.4
