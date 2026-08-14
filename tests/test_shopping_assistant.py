@@ -23,6 +23,13 @@ def test_get_recommendations_returns_expected_structure(monkeypatch):
         lambda query, top_k: mock_results,
     )
 
+    monkeypatch.setattr(
+        "app.services.shopping_assistant.generate_response",
+        lambda prompt, max_output_tokens: (
+            "Mocked shopping recommendation"
+        ),
+    )
+
     result = get_recommendations(
         "laptop for programming under $900",
         top_k=5,
