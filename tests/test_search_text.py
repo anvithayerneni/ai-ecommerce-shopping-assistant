@@ -41,10 +41,14 @@ def test_semantic_product_search(client):
 
     assert response.status_code == 200
 
-    results = response.json()
+    data = response.json()
 
-    assert len(results) == 3
-    assert results[0]["product_id"] in {1, 3}
+    assert data["query"] == "running shoes for training"
+
+    results = data["results"]
+
+    assert len(results) == 2
+    assert int(results[0]["id"]) in {1, 3}
     assert "score" in results[0]
 
 
@@ -60,3 +64,30 @@ def test_semantic_product_search_validation(client):
     )
 
     assert response.status_code == 422
+
+def test_semantic_search_price_range_filter(monkeypatch):
+    from app.services import search_service
+
+    captured = {}
+
+    class FakeSearchClient:
+        def search(self, **kwargs):
+            captured.update(kwargs)
+            return []
+
+    monkeypatch.setattr(
+        search_service,
+        "search_client",
+        FakeSearchClient(),
+    )
+
+    search_service.search_products(
+        query="laptop between $700 and $1,000",
+        top_k=5,
+    )
+
+    assert captured["filter"] == (
+        "category eq 'Laptops' "
+        "and price ge 700.0 "
+        "and price le 1000.0"
+    )

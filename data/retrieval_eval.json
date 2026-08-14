@@ -1,0 +1,22 @@
+[
+  {
+    "query": "comfortable running shoes for training",
+    "relevant_product_ids": [1, 3]
+  },
+  {
+    "query": "wireless noise cancelling headphones",
+    "relevant_product_ids": [6, 7]
+  },
+  {
+    "query": "laptop for programming work",
+    "relevant_product_ids": [4, 5]
+  },
+  {
+    "query": "laptop for office work",
+    "relevant_product_ids": [4, 5]
+  },
+  {
+    "query": "travel products for commuting",
+    "relevant_product_ids": [6, 7, 10]
+  }
+]

@@ -17,6 +17,8 @@ def export_products() -> None:
         documents = []
 
         for product in products:
+            if not product.category:
+                continue
             documents.append(
                 {
                     "product_id": product.id,

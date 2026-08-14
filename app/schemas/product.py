@@ -3,6 +3,7 @@ from pydantic import BaseModel, ConfigDict
 
 class ProductBase(BaseModel):
     name: str
+    external_id: str | None = None
     description: str | None = None
     brand: str | None = None
     category: str | None = None

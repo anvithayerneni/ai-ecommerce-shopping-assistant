@@ -254,3 +254,38 @@ def test_get_products_invalid_sort_parameters(client):
     )
 
     assert response.status_code == 422
+
+def test_create_product_database_error(client, monkeypatch):
+    from app.api import products
+
+    def mock_create_product(db, product_data):
+        raise RuntimeError("Database connection failed")
+
+    monkeypatch.setattr(
+        products,
+        "create_product",
+        mock_create_product,
+    )
+
+    response = client.post(
+        "/products",
+        json={
+            "name": "Failure Product",
+            "description": "Test failure handling",
+            "brand": "TestBrand",
+            "category": "Testing",
+            "price": 50.00,
+            "rating": 4.0,
+            "stock": 10,
+        },
+    )
+
+    assert response.status_code == 500
+
+
+def test_get_products_invalid_price_range(client):
+    response = client.get(
+        "/products?min_price=1000&max_price=500"
+    )
+
+    assert response.status_code == 422
