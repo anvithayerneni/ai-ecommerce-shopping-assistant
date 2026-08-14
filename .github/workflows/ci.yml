@@ -50,4 +50,4 @@ jobs:
           AZURE_SEARCH_INDEX_NAME: test-index
           OPENAI_API_KEY: test-api-key
         run: |
-          pytest -q
+          pytest -q tests
