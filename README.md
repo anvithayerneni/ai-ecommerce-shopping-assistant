@@ -1,149 +1,270 @@
 # AI-Powered E-Commerce Shopping & Recommendation Assistant
 
-An AI-powered e-commerce shopping and product recommendation assistant built with Python and FastAPI.
+Badges
 
-The goal of this project is to build a production-style intelligent shopping assistant that can understand user preferences, search product information, generate personalized recommendations, and provide conversational shopping assistance.
-
----
+## Overview
+## Key Features
+## Example Queries
+## Architecture
+## Technical Design
+## Project Structure
+## Tech Stack
+## API
+## Setup
+## Environment Variables
+## Running the Application
+## Testing
+## Example Responses
+## Engineering Highlights
+## Roadmap
+## License
 
 ## 🚀 Project Status
 
-**Current Phase:** Phase 1 — Project Setup & Backend Foundation
+**Status:** Active Development
 
-### Completed
+The core shopping recommendation pipeline is implemented and
+covered by automated tests.
 
-- Python 3.11 development environment
-- Python virtual environment
+### Implemented
+
 - FastAPI backend
-- Uvicorn development server
-- Modular project structure
-- Health-check API
-- Interactive FastAPI documentation
-- Git version control
-- GitHub repository
-- Environment variable template
-- Dependency management with `requirements.txt`
+- PostgreSQL product catalog
+- Product search and retrieval
+- Azure AI Search vector search
+- Embedding-based semantic search
+- Deterministic product filtering
+- Product reranking
+- Natural-language query understanding
+- LangGraph shopping workflow
+- Azure OpenAI integration
+- Tool-calling shopping agent
+- Product comparison
+- Product-name resolution
+- Conversational follow-up handling
+- Grounded response generation
+- Product attribute grounding
+- Automated test suite
+- 118 passing tests
 
-### Coming Next
+  ## ✨ Key Features
 
-- PostgreSQL database
-- Product data models
-- Product catalog APIs
-- Recommendation engine
-- Embeddings and semantic search
+### 🔎 Natural-Language Product Search
+
+Users can search for products using natural language rather than
+traditional keyword filters.
+
+Examples:
+
+- "laptop under $1000 for programming"
+- "running shoes for training"
+- "headphones with good ratings"
+
+The system extracts structured constraints such as:
+
+- category
+- use case
+- minimum price
+- maximum price
+- minimum rating
+
+---
+
+### 🧠 Semantic Product Search
+
+Product queries are converted into embeddings and searched using
+Azure AI Search vector search.
+
+This allows the system to retrieve products based on semantic
+similarity rather than relying only on exact keyword matches.
+
+---
+
+### 🎯 Deterministic Filtering
+
+Structured constraints are enforced in Python rather than relying
+entirely on the LLM.
+
+Supported filters include:
+
+- Category
+- Minimum price
+- Maximum price
+- Minimum rating
+- Use case
+
+---
+
+### 📊 Product Reranking
+
+Retrieved products are reranked using product relevance signals
+before recommendations are generated.
+
+---
+
+### 🤖 Agentic Tool Calling
+
+The shopping agent can use product tools to retrieve authoritative
+catalog information.
+
+The system supports tool-based product retrieval and comparison
+rather than allowing the LLM to invent product attributes.
+
+---
+
+### ⚖️ Product Comparison
+
+Users can compare products using natural language.
+
+Example:
+
+"Compare MacBook Air M3 and Galaxy Book4"
+
+The comparison can identify:
+
+- Product names
+- Brands
+- Categories
+- Prices
+- Ratings
+- Features
+- Target audience
+- Use cases
+- Cheapest product
+- Highest-rated product
+
+---
+
+### 🛡️ Grounded Responses
+
+The assistant is designed to avoid hallucinating product
+capabilities.
+
+Product features and use cases must come from retrieved catalog
+data.
+
+For example, if programming is explicitly listed for one product
+but not another, the system does not automatically assume that both
+support programming.
+
+---
+
+### 💬 Conversational Follow-Ups
+
+The system maintains short-term conversation state and can resolve
+follow-up requests such as:
+
+- "Show me cheaper ones"
+- "Show me more expensive ones"
+- "Show me Windows ones"
+
+                           User
+                           |
+                           v
+                    FastAPI API
+                           |
+                           v
+                Shopping Assistant
+                           |
+                           v
+                  Query Understanding
+                           |
+                           v
+                  Resolve Follow-Up
+                           |
+                           v
+                   LangGraph Workflow
+                           |
+              +------------+-------------+
+              |                          |
+              v                          v
+       Shopping Agent              Product Search
+              |                          |
+              v                          v
+        Tool Calling              Azure AI Search
+              |                          |
+              v                          v
+      PostgreSQL Catalog          Vector Embeddings
+              |                          |
+              +------------+-------------+
+                           |
+                           v
+                  Deterministic Filters
+                           |
+                           v
+                       Reranking
+                           |
+                           v
+                    Recommendations
+                           |
+                           v
+                 Grounding Validation
+                           |
+                           v
+                    Azure OpenAI
+                           |
+                           v
+                  Final Response
+
+## 🔌 API
+
+### Product Recommendations
+
+```http
+GET /assistant/recommend
+
+## 🏗️ Engineering Highlights
+
+### Separation of Deterministic and Generative Logic
+
+The system intentionally separates deterministic business logic
+from LLM-generated responses.
+
+Structured constraints such as price, category, rating, and use case
+are processed programmatically.
+
+The LLM is primarily responsible for conversational interpretation
+and response generation.
+
+### Grounded Product Comparisons
+
+Product comparisons are generated from authoritative catalog data.
+
+The system does not allow the LLM to invent:
+
+- prices
+- ratings
+- features
+- use cases
+- product capabilities
+
+### Stateful Conversational Workflow
+
+LangGraph manages the shopping workflow and short-term conversation
+state, allowing follow-up requests to reference previous
+recommendations.
+
+### Lazy Azure OpenAI Initialization
+
+Azure OpenAI clients are created lazily so the application can be
+imported and tested without requiring Azure credentials during
+module import.
+
+## 🚀 Getting Started
+
+### Prerequisites
+
+- Python 3.11+
+- PostgreSQL
 - Azure AI Search
 - Azure OpenAI
-- LangGraph agent workflow
-- Personalized shopping assistant
-- Automated tests
-- Docker containerization
+- Git
 
----
+### Clone
 
-## 🎯 Project Goal
-
-The application is designed to provide an intelligent shopping experience by combining:
-
-- Product catalog data
-- User preferences
-- Semantic search
-- Machine learning
-- Large language models
-- Retrieval-Augmented Generation (RAG)
-- Agentic AI workflows
-- Personalized recommendations
-
-The final system will allow users to interact with the application conversationally and receive relevant product recommendations based on their needs and preferences.
-
----
-
-## 🏗️ Planned Architecture
-
-```text
-                    User
-                     |
-                     v
-              FastAPI Backend
-                     |
-                     v
-            Shopping Assistant
-                     |
-          +----------+----------+
-          |                     |
-          v                     v
-    Product Search       Recommendation Engine
-          |                     |
-          v                     v
-   Azure AI Search       ML / Embeddings
-          |                     |
-          +----------+----------+
-                     |
-                     v
-                LangGraph
-                     |
-                     v
-               Azure OpenAI
-                     |
-                     v
-             Personalized Response
+```bash
+git clone https://github.com/anvithayerneni/ai-ecommerce-shopping-assistant.git
+cd ai-ecommerce-shopping-assistant
 
 
-🛠️ Technology Stack
-Backend
-Python 3.11
-FastAPI
-Uvicorn
-Database
-PostgreSQL
-AI / Machine Learning
-PyTorch
-Embeddings
-Semantic Search
-Recommendation Systems
-Retrieval-Augmented Generation (RAG)
-Generative AI
-Azure OpenAI
-LangGraph
-Search
-Azure AI Search
-DevOps
-Docker
-Git
-GitHub
-Testing
-pytest
-
-
-
-ai-ecommerce-shopping-assistant/
-│
-├── app/
-│   ├── api/
-│   │   └── __init__.py
-│   │
-│   ├── core/
-│   │   └── __init__.py
-│   │
-│   ├── db/
-│   │   └── __init__.py
-│   │
-│   ├── models/
-│   │   └── __init__.py
-│   │
-│   ├── schemas/
-│   │   └── __init__.py
-│   │
-│   ├── services/
-│   │   └── __init__.py
-│   │
-│   ├── __init__.py
-│   └── main.py
-│
-├── data/
-│
-├── tests/
-│
-├── .env.example
-├── .gitignore
-├── requirements.txt
-└── README.md
+  
