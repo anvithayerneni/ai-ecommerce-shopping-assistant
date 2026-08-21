@@ -4,8 +4,15 @@ import os
 
 from dotenv import load_dotenv
 from langchain_openai import AzureChatOpenAI
+from langchain_core.messages import ToolMessage
 
-from app.tools.product_details import get_product_details
+from app.tools.product_details import (
+    get_product_details,
+)
+
+from app.tools.shopping_tools import (
+    compare_catalog_products,
+)
 
 
 # ============================================================
@@ -28,12 +35,19 @@ def get_llm() -> AzureChatOpenAI:
     the local Azure OpenAI credentials.
     """
 
-    endpoint = os.getenv("AZURE_OPENAI_ENDPOINT")
-    api_key = os.getenv("AZURE_OPENAI_API_KEY")
+    endpoint = os.getenv(
+        "AZURE_OPENAI_ENDPOINT"
+    )
+
+    api_key = os.getenv(
+        "AZURE_OPENAI_API_KEY"
+    )
+
     api_version = os.getenv(
         "AZURE_OPENAI_API_VERSION",
         "2024-02-15-preview",
     )
+
     deployment = os.getenv(
         "AZURE_OPENAI_DEPLOYMENT"
     )
@@ -80,22 +94,33 @@ def get_llm() -> AzureChatOpenAI:
 SYSTEM_PROMPT = """
 You are an AI-powered e-commerce shopping assistant.
 
-You help users search for products, compare products,
-understand product differences, and make shopping decisions.
+You help users:
+
+- search for products
+- compare products
+- understand product differences
+- identify cheaper products
+- identify higher-rated products
+- make shopping decisions
 
 IMPORTANT RULES:
 
 1. Use the available product tools whenever the user refers
    to specific product IDs.
 
-2. If the user asks to compare products, retrieve the actual
-   product details before answering.
+2. If the user asks to compare specific products, use the
+   compare_catalog_products tool whenever possible.
 
-3. Never invent product information.
+3. If the user provides product names instead of product IDs,
+   use the available product search/recommendation system to
+   identify the relevant products before comparing them.
 
-4. Base comparisons on information returned by the tools.
+4. Never invent product information.
 
-5. When comparing products, clearly mention:
+5. Base comparisons only on information returned by the tools.
+
+6. When comparing products, clearly mention when available:
+
    - Product name
    - Price
    - Rating
@@ -104,20 +129,30 @@ IMPORTANT RULES:
    - Features
    - Target audience
    - Use cases
-   - Stock when relevant
 
-6. If the user asks which product is cheaper, identify the
-   lower-priced product.
+7. If the user asks which product is cheaper, identify the
+   lower-priced product using the actual catalog prices.
 
-7. If the user asks which product is better rated, identify
-   the product with the higher rating.
+8. If the user asks which product is better rated, identify
+   the product with the higher catalog rating.
 
-8. If a requested product cannot be found, clearly say so.
+9. If a requested product cannot be found, clearly say so.
 
-9. Keep responses concise but useful.
+10. Do not assume that two products are equivalent merely
+    because they belong to the same category.
 
-10. When product IDs are mentioned, interpret them as database
-    product IDs and use the product-details tool.
+11. Do not invent specifications, operating systems,
+    processors, display specifications, battery life,
+    performance claims, or other product attributes.
+
+12. Keep responses concise but useful.
+
+13. When product IDs are mentioned, interpret them as database
+    product IDs and use the product-details or comparison tool.
+
+14. For product comparisons, prefer the deterministic
+    compare_catalog_products tool because it retrieves
+    authoritative catalog information.
 """
 
 
@@ -127,6 +162,7 @@ IMPORTANT RULES:
 
 TOOLS = [
     get_product_details,
+    compare_catalog_products,
 ]
 
 
@@ -140,23 +176,31 @@ def run_shopping_agent(
     """
     Run the tool-calling shopping agent.
 
-    The Azure client is created lazily so importing this module
-    does not require Azure credentials.
+    Available tools:
 
-    The returned object is the final LangChain AIMessage.
+        - get_product_details
+        - compare_catalog_products
 
-    agent_node.py expects:
+    The tool loop guarantees that every assistant tool call
+    receives exactly one corresponding ToolMessage before
+    another LLM request is made.
 
-        result.content
-        result.tool_calls
+    This is required by the OpenAI tool-calling protocol.
     """
 
     llm = get_llm()
 
-    # Bind the product tools to the model.
+    # --------------------------------------------------------
+    # Bind tools to the model
+    # --------------------------------------------------------
+
     llm_with_tools = llm.bind_tools(
         TOOLS
     )
+
+    # --------------------------------------------------------
+    # Initial conversation
+    # --------------------------------------------------------
 
     messages = [
         (
@@ -170,23 +214,26 @@ def run_shopping_agent(
     ]
 
     # --------------------------------------------------------
-    # First model call
-    # --------------------------------------------------------
-
-    result = llm_with_tools.invoke(
-        messages
-    )
-
-    # --------------------------------------------------------
     # Tool-calling loop
-    #
-    # The model may request one or more tools.
-    # Execute them and send the results back to the model.
     # --------------------------------------------------------
 
     max_tool_rounds = 5
 
+    result = None
+
     for _ in range(max_tool_rounds):
+
+        # ----------------------------------------------------
+        # Ask the model what to do
+        # ----------------------------------------------------
+
+        result = llm_with_tools.invoke(
+            messages
+        )
+
+        # ----------------------------------------------------
+        # Check whether the model requested tools
+        # ----------------------------------------------------
 
         tool_calls = getattr(
             result,
@@ -194,12 +241,32 @@ def run_shopping_agent(
             [],
         )
 
+        # ----------------------------------------------------
+        # No tools requested.
+        #
+        # The model has produced the final answer.
+        # ----------------------------------------------------
+
         if not tool_calls:
-            break
+            return result
+
+        # ----------------------------------------------------
+        # IMPORTANT:
+        #
+        # Add the assistant message containing ALL tool calls
+        # before adding the ToolMessages.
+        # ----------------------------------------------------
 
         messages.append(
             result
         )
+
+        # ----------------------------------------------------
+        # Execute EVERY tool call.
+        #
+        # If the model requests two tools, both must receive
+        # a ToolMessage with their exact tool_call_id.
+        # ----------------------------------------------------
 
         for tool_call in tool_calls:
 
@@ -217,57 +284,70 @@ def run_shopping_agent(
             )
 
             # ------------------------------------------------
-            # PRODUCT DETAILS TOOL
+            # Execute the requested tool
             # ------------------------------------------------
 
-            if tool_name == "get_product_details":
+            try:
 
-                tool_result = (
-                    get_product_details.invoke(
-                        tool_args
+                if tool_name == "get_product_details":
+
+                    tool_result = (
+                        get_product_details.invoke(
+                            tool_args
+                        )
                     )
-                )
 
-                from langchain_core.messages import (
-                    ToolMessage,
-                )
+                elif tool_name == "compare_catalog_products":
 
-                messages.append(
-                    ToolMessage(
-                        content=str(
-                            tool_result
-                        ),
-                        tool_call_id=(
-                            tool_call_id
-                        ),
+                    tool_result = (
+                        compare_catalog_products.invoke(
+                            tool_args
+                        )
                     )
-                )
 
-            else:
+                else:
 
-                from langchain_core.messages import (
-                    ToolMessage,
-                )
-
-                messages.append(
-                    ToolMessage(
-                        content=(
-                            f"Unknown tool: "
+                    tool_result = {
+                        "error": (
+                            f"Unknown tool requested: "
                             f"{tool_name}"
-                        ),
-                        tool_call_id=(
-                            tool_call_id
-                        ),
+                        )
+                    }
+
+            except Exception as exc:
+
+                tool_result = {
+                    "error": (
+                        f"Tool execution failed: "
+                        f"{exc}"
                     )
+                }
+
+            # ------------------------------------------------
+            # Send the result back to the model.
+            #
+            # CRITICAL:
+            #
+            # tool_call_id MUST exactly match the ID from
+            # the assistant tool call.
+            # ------------------------------------------------
+
+            messages.append(
+                ToolMessage(
+                    content=str(
+                        tool_result
+                    ),
+                    tool_call_id=tool_call_id,
                 )
+            )
 
-        # ----------------------------------------------------
-        # Ask the model to produce the final answer
-        # using the retrieved tool information.
-        # ----------------------------------------------------
+    # --------------------------------------------------------
+    # Safety fallback
+    # --------------------------------------------------------
 
-        result = llm_with_tools.invoke(
-            messages
-        )
+    if result is not None:
+        return result
 
-    return result
+    raise RuntimeError(
+        "Shopping agent did not produce a result."
+    )
