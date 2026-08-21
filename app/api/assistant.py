@@ -16,7 +16,11 @@ router = APIRouter(
 )
 def recommend_products(
     q: str = Query(..., min_length=2),
-    top_k: int = Query(default=5, ge=1, le=20),
+    top_k: int = Query(
+        default=5,
+        ge=1,
+        le=20,
+    ),
 ):
     return get_recommendations(
         query=q,

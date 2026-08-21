@@ -28,4 +28,24 @@ class ProductCreate(ProductBase):
 class ProductResponse(ProductBase):
     id: int
 
-    model_config = ConfigDict(from_attributes=True)
+    model_config = ConfigDict(
+        from_attributes=True
+    )
+
+
+# ============================================================
+# RECOMMENDATIONS
+# ============================================================
+
+class RecommendationResponse(BaseModel):
+    product: ProductResponse
+    score: float
+    categorical_score: float
+    use_case_score: float
+    semantic_score: float
+    explanation: str
+
+
+class ProductRecommendationsResponse(BaseModel):
+    query_product: ProductResponse
+    recommendations: list[RecommendationResponse]
