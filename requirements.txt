@@ -42,3 +42,4 @@ websockets==17.0.1
 streamlit
 requests
 langgraph
+langchain-openai
