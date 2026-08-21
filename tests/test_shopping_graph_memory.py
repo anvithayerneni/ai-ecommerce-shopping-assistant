@@ -1,84 +1,59 @@
-from app.agents import shopping_graph as shopping_graph_module
+from unittest.mock import patch
+
+from app.agents.shopping_graph import shopping_graph
 
 
-def test_shopping_graph_preserves_conversation_memory(
-    monkeypatch,
-):
-    """
-    Verify that the shopping graph preserves conversation
-    history and resolves a follow-up request using the
-    previous turn.
+def fake_run_shopping_agent(query: str):
+    class FakeResult:
+        content = f"Mock shopping response for: {query}"
+        tool_calls = []
 
-    The LLM-backed agent is mocked because this is a graph
-    memory test, not an Azure OpenAI integration test.
-    """
+    return FakeResult()
 
-    def mock_agent_node(state):
-        """
-        Mock the LLM agent so CI does not require Azure
-        OpenAI credentials.
-        """
 
-        return {
-            **state,
-            "agent_response": "Mock shopping agent response.",
-            "agent_tool_calls": [],
-        }
-
-    monkeypatch.setattr(
-        shopping_graph_module,
-        "agent_node",
-        mock_agent_node,
-    )
-
+def test_shopping_graph_preserves_conversation_memory():
     config = {
         "configurable": {
             "thread_id": "memory-test-user",
         }
     }
 
-    # --------------------------------------------------------
-    # First turn
-    # --------------------------------------------------------
+    with patch(
+        "app.agents.agent_node.run_shopping_agent",
+        side_effect=fake_run_shopping_agent,
+    ):
+        first_turn = shopping_graph.invoke(
+            {
+                "query": "laptop under $1000 for programming",
+                "top_k": 5,
+            },
+            config,
+        )
 
-    first_turn = shopping_graph_module.shopping_graph.invoke(
-        {
-            "query": "laptop under $1000 for programming",
-            "top_k": 5,
-        },
-        config,
-    )
+        assert first_turn["query"] == (
+            "laptop under $1000 for programming"
+        )
 
-    assert first_turn["query"] == (
-        "laptop under $1000 for programming"
-    )
+        assert first_turn["recommendations"]
 
-    assert first_turn["recommendations"]
+        second_turn = shopping_graph.invoke(
+            {
+                "query": "show me cheaper ones",
+                "top_k": 5,
+            },
+            config,
+        )
 
-    # --------------------------------------------------------
-    # Second turn
-    # --------------------------------------------------------
+        assert second_turn["query"] == (
+            "show me cheaper ones"
+        )
 
-    second_turn = shopping_graph_module.shopping_graph.invoke(
-        {
-            "query": "show me cheaper ones",
-            "top_k": 5,
-        },
-        config,
-    )
+        assert second_turn["resolved_query"]
 
-    assert second_turn["query"] == (
-        "show me cheaper ones"
-    )
+        assert second_turn["followup_type"] == "cheaper"
 
-    assert second_turn["resolved_query"]
+        assert second_turn["recommendations"]
 
-    assert second_turn["followup_type"] == "cheaper"
-
-    assert second_turn["recommendations"]
-
-    # User + assistant messages from both turns
-    # should be preserved.
-    assert len(
-        second_turn["conversation_history"]
-    ) >= 3
+        assert len(
+            second_turn["conversation_history"]
+        ) >= 3
