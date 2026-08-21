@@ -1,10 +1,9 @@
 def test_assistant_recommend_endpoint(client, monkeypatch):
     mock_result = {
-        "query": "laptop for programming under $900",
-        "assistant_response": (
+        "response": (
             "The Galaxy Book4 is a good match for "
             "programming under $900."
-            ),
+        ),
         "recommendations": [
             {
                 "product": {
@@ -25,15 +24,9 @@ def test_assistant_recommend_endpoint(client, monkeypatch):
     }
 
     monkeypatch.setattr(
-        "app.api.assistant.get_recommendations",
-        lambda query, top_k: mock_result,
+        "app.api.assistant.shopping_graph.invoke",
+        lambda state, config=None: mock_result,
     )
-
-    # monkeypatch.setattr(
-    #     "app.services.shopping_assistant.generate_response",
-    #     lambda prompt, max_output_tokens: "Mocked explanation",
-    # )
-
 
     response = client.get(
         "/assistant/recommend"
@@ -49,7 +42,8 @@ def test_assistant_recommend_endpoint(client, monkeypatch):
     assert (
         data["assistant_response"]
         == "The Galaxy Book4 is a good match for programming under $900."
-)
+    )
+
     assert len(data["recommendations"]) == 1
 
     recommendation = data["recommendations"][0]
